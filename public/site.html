@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certo Atacado & Varejo - Lugar certo de comprar barato</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* ==========================================
+           BANNER CLUBE MAIS VANTAGENS - ANIMADO
+           ========================================== */
+        .promo-banner {
+            /* ✅ LARANJA MAIS ESCURO */
+            background: linear-gradient(135deg, #e65c00, #f07000, #e65c00);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease infinite;
+            padding: 40px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .promo-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255,255,255,0.06) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.04) 0%, transparent 70%);
+            animation: particleFloat 12s ease-in-out infinite;
+        }
+
+        @keyframes particleFloat {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .promo-banner-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            position: relative;
+            z-index: 2;
+            padding: 0 10px;
+        }
+
+        /* ==========================================
+           LADO ESQUERDO: CLUBE MAIS VANTAGENS
+           ========================================== */
+        .promo-left {
+            flex: 0 0 auto;
+            text-align: center;
+            color: white;
+            animation: slideInLeft 1s ease-out both, floatGentle 4s ease-in-out infinite 1s;
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-50px) scale(0.8); }
+            to { opacity: 1; transform: translateX(0) scale(0.95); }
+        }
+
+        @keyframes floatGentle {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .club-icon {
+            width: 45px;
+            height: 45px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #ffdd44;
+            border: 2px solid rgba(255,255,255,0.25);
+            transform: rotate(-10deg);
+            margin-bottom: 10px;
+            animation: iconPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: rotate(-10deg) scale(1); }
+            50% { transform: rotate(-10deg) scale(1.1); }
+        }
+
+        .club-text h3 {
+            font-size: 26px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin: 0;
+        }
+
+        .club-text h3 span {
+            color: #ffdd44;
+        }
+
+        .club-text .cert-subtitle {
+            margin-top: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+
+        .club-cert-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+            font-size: 18px;
+            font-weight: 900;
+            color: white;
+        }
+
+        .club-cert-check {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .club-cert-check svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .club-cert-check svg path {
+            stroke: #e65c00;
+            stroke-width: 5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .app-buttons-banner {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .app-btn-banner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.12);
+            border: 2px solid rgba(255,255,255,0.35);
+            padding: 8px 14px;
+            border-radius: 10px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            animation: btnFadeIn 1.2s ease-out both;
+        }
+
+        .app-btn-banner:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        @keyframes btnFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .app-btn-banner:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.7);
+            transform: translateY(-3px) scale(1.05);
+        }
+
+        .app-btn-banner i {
+            font-size: 22px;
+        }
+
+        .app-btn-banner .app-text {
+            text-align: left;
+            line-height: 1.2;
+        }
+
+        .app-btn-banner .app-text small {
+            font-size: 9px;
+            opacity: 0.8;
+            display: block;
+        }
+
+        .app-btn-banner .app-text strong {
+            font-size: 13px;
+        }
+
+        /* ==========================================
+           CENTRO: CERTO ATACADO - SUPER DESTACADO
+           ✅ SEM SOMBREAMENTO
+           ========================================== */
+        .promo-center {
+            flex: 0 0 auto;
+            text-align: center;
+            animation: scaleIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) both, 
+                       centerPulse 4s ease-in-out infinite 1s,
+                       floatCenter 5s ease-in-out infinite;
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1.4); }
+        }
+
+        @keyframes centerPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.9; }
+        }
+
+        @keyframes floatCenter {
+            0%, 100% { transform: scale(1.4) translateY(0); }
+            50% { transform: scale(1.4) translateY(-10px); }
+        }
+
+        .cert-logo-main {
+            font-size: 90px;
+            font-weight: 900;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .cert-check-circle {
+            width: 90px;
+            height: 90px;
+            background: white;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            /* ✅ SEM SOMBRA */
+            animation: checkBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes checkBounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .cert-check-circle svg {
+            width: 50px;
+            height: 50px;
+            animation: checkDraw 1.5s ease-out 0.5s both;
+        }
+
+        @keyframes checkDraw {
+            from { stroke-dashoffset: 100; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        .cert-check-circle svg path {
+            stroke: #e65c00; /* ✅ LARANJA MAIS ESCURO */
+            fill: none;
+            stroke-width: 5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 100;
+        }
+
+        .cert-sub {
+            font-size: 18px;
+            color: rgba(255,255,255,0.95);
+            font-weight: 700;
+            letter-spacing: 4px;
+            margin-top: 12px;
+            text-transform: uppercase;
+            animation: fadeSlideUp 1s ease-out 0.3s both;
+        }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .cert-slogan {
+            font-size: 15px;
+            color: rgba(255,255,255,0.85);
+            font-style: italic;
+            margin-top: 6px;
+            animation: fadeSlideUp 1s ease-out 0.5s both;
+        }
+
+        /* ==========================================
+           LADO DIREITO: REDE MÜLLER
+           ========================================== */
+        .promo-right {
+            flex: 0 0 auto;
+            text-align: center;
+            color: white;
+            animation: slideInRight 1s ease-out both, floatGentle 4s ease-in-out infinite 1.5s;
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(50px) scale(0.8); }
+            to { opacity: 1; transform: translateX(0) scale(0.95); }
+        }
+
+        .muller-brand {
+            position: relative;
+            display: inline-block;
+        }
+
+        .muller-rede {
+            font-size: 16px;
+            font-weight: 400;
+            opacity: 0.9;
+            display: block;
+            margin-bottom: 2px;
+            animation: fadeSlideUp 1s ease-out 0.6s both;
+        }
+
+        .muller-name {
+            font-size: 52px;
+            font-weight: 900;
+            color: white;
+            letter-spacing: 2px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .muller-sun {
+            position: absolute;
+            top: -16px;
+            right: -10px;
+            font-size: 20px;
+            color: #ffdd44;
+            line-height: 1;
+            animation: sunSpin 6s linear infinite;
+        }
+
+        @keyframes sunSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .muller-slogan {
+            font-size: 16px;
+            font-style: italic;
+            font-weight: 300;
+            margin-top: 8px;
+            opacity: 0.85;
+            animation: fadeSlideUp 1s ease-out 0.8s both;
+        }
+
+        /* ==========================================
+           RESPONSIVO
+           ========================================== */
+        @media (max-width: 1000px) {
+            .promo-banner-inner {
+                flex-direction: column;
+                gap: 35px;
+                padding: 10px;
+            }
+            .promo-left, .promo-right, .promo-center {
+                animation: none;
+                transform: none;
+            }
+            .promo-center {
+                animation: scaleIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+            }
+            .cert-logo-main {
+                font-size: 64px;
+            }
+            .cert-check-circle {
+                width: 64px;
+                height: 64px;
+            }
+            .cert-check-circle svg {
+                width: 36px;
+                height: 36px;
+            }
+            .club-text h3 {
+                font-size: 26px;
+            }
+            .muller-name {
+                font-size: 52px;
+            }
+            .app-buttons-banner {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .promo-banner {
+                padding: 30px 0;
+            }
+            .cert-logo-main {
+                font-size: 48px;
+            }
+            .cert-check-circle {
+                width: 48px;
+                height: 48px;
+            }
+            .cert-check-circle svg {
+                width: 28px;
+                height: 28px;
+            }
+            .cert-sub {
+                font-size: 13px;
+                letter-spacing: 2px;
+            }
+            .cert-slogan {
+                font-size: 12px;
+            }
+            .muller-name {
+                font-size: 42px;
+            }
+            .club-text h3 {
+                font-size: 22px;
+            }
+            .app-buttons-banner {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/site.html" class="navbar-brand">
+                <div class="navbar-logo-icon"><i class="fas fa-check"></i></div>
+                <div class="navbar-brand-text">
+                    <span class="navbar-brand-name">Certo</span>
+                    <span class="navbar-brand-sub">Atacado & Varejo</span>
+                </div>
+            </a>
+            <div class="navbar-links">
+                <a href="/site.html" class="nav-link active">Início</a>
+                <a href="/historia.html" class="nav-link">Nossa História</a>
+                <a href="/fale-conosco.html" class="nav-link">Fale Conosco</a>
+                <a href="/trabalhe-conosco.html" class="nav-link">Trabalhe Conosco</a>
+                <a href="https://wa.me/555197078458" target="_blank" class="nav-link nav-link-televendas"><i class="fab fa-whatsapp"></i> Televendas</a>
+            </div>
+            <button class="navbar-toggle" id="menu-toggle"><i class="fas fa-bars"></i></button>
+        </div>
+        <div class="navbar-mobile" id="mobile-menu">
+            <a href="/site.html" class="nav-link-mobile active">Início</a>
+            <a href="/historia.html" class="nav-link-mobile">Nossa História</a>
+            <a href="/fale-conosco.html" class="nav-link-mobile">Fale Conosco</a>
+            <a href="/trabalhe-conosco.html" class="nav-link-mobile">Trabalhe Conosco</a>
+            <a href="https://wa.me/555197078458" target="_blank" class="nav-link-mobile nav-link-mobile-televendas"><i class="fab fa-whatsapp"></i> Televendas</a>
+        </div>
+    </nav>
+
+    <!-- ==========================================
+         BANNER CLUBE MAIS VANTAGENS + CERTO + MÜLLER
+         ========================================== -->
+    <section class="promo-banner">
+        <div class="promo-banner-inner">
+            
+            <!-- LADO ESQUERDO: CLUBE MAIS VANTAGENS -->
+            <div class="promo-left">
+                <div class="club-icon"><i class="fas fa-plus"></i></div>
+                <div class="club-text">
+                    <h3>CLUBE <span>MAIS</span><br>VANTAGENS</h3>
+                    <div class="club-cert-logo">
+                        cert
+                        <span class="club-cert-check">
+                            <svg viewBox="0 0 42 42" fill="none">
+                                <path d="M8 21L17 30L34 12"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="cert-subtitle">ATACADO & VAREJO</div>
+                </div>
+                <div class="app-buttons-banner">
+                    <a href="https://apps.apple.com/br/app/clube-vantagens/id1580602045" target="_blank" class="app-btn-banner">
+                        <i class="fab fa-apple"></i>
+                        <div class="app-text">
+                            <small>Download on the</small>
+                            <strong>App Store</strong>
+                        </div>
+                    </a>
+                    <a href="https://play.google.com/store/apps/details?id=br.com.sysmo.b2c.muller" target="_blank" class="app-btn-banner">
+                        <i class="fab fa-google-play"></i>
+                        <div class="app-text">
+                            <small>GET IT ON</small>
+                            <strong>Google Play</strong>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- CENTRO: CERTO ATACADO -->
+            <div class="promo-center">
+                <div class="cert-logo-main">
+                    cert
+                    <div class="cert-check-circle">
+                        <svg viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 21L17 30L34 12"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="cert-sub">ATACADO & VAREJO</div>
+                <div class="cert-slogan">"Lugar certo de comprar barato"</div>
+            </div>
+
+            <!-- LADO DIREITO: REDE MÜLLER -->
+            <div class="promo-right">
+                <div class="muller-brand">
+                    <span class="muller-rede">Rede</span>
+                    <span class="muller-name">
+                        MÜLLER
+                        <span class="muller-sun">✦</span>
+                    </span>
+                </div>
+                <div class="muller-slogan">pra viver bem</div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- BANNER VERIFICADOS -->
+    <section class="banner-verificados">
+        <div class="banner-card">
+            <img src="/imagens/verificados-banner.jpg" alt="Verificados">
+        </div>
+    </section>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="container">
+        <section class="section">
+            <h2 class="section-title">🛒 Encartes e Promoções</h2>
+            <div class="carousel-container">
+                <button class="carousel-btn prev" onclick="scrollCarousel(-1)">❮</button>
+                <div class="carousel" id="carousel-encartes">
+                    <div class="loading"><div class="spinner"></div>Carregando encartes...</div>
+                </div>
+                <button class="carousel-btn next" onclick="scrollCarousel(1)">❯</button>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">🎁 Sorteios Ativos</h2>
+            <div class="sorteios-grid" id="sorteios-grid">
+                <div class="loading"><div class="spinner"></div>Carregando sorteios...</div>
+            </div>
+        </section>
+
+        <!-- NOSSAS LOJAS -->
+        <section class="section">
+            <h2 class="section-title">🏪 Nossas Lojas</h2>
+            <div class="lojas-grid">
+                <a href="https://www.google.com/maps/search/?api=1&query=R.+Picada+Gravatá,+1350,+Medianeira,+Taquara,+RS" target="_blank" class="loja-card">
+                    <div class="loja-imagem">
+                        <img src="/imagens/lojas/taquara-medianeira.jpg" alt="Certo Atacado - Taquara Medianeira" onerror="this.parentElement.style.background='#ff6600'">
+                        <div class="loja-overlay"><i class="fas fa-map-marker-alt"></i><span>Ver no Mapa</span></div>
+                    </div>
+                    <div class="loja-info">
+                        <h3>Taquara - Medianeira</h3>
+                        <p class="loja-endereco">R. Picada Gravatá, 1350<br>Medianeira, Taquara - RS</p>
+                    </div>
+                </a>
+                <a href="https://www.google.com/maps/search/?api=1&query=Av.+Oscar+Martins+Rangel,+3621,+Santa+Maria,+Taquara,+RS" target="_blank" class="loja-card">
+                    <div class="loja-imagem">
+                        <img src="/imagens/lojas/taquara-santa-maria.jpg" alt="Certo Atacado - Taquara Santa Maria" onerror="this.parentElement.style.background='#ff6600'">
+                        <div class="loja-overlay"><i class="fas fa-map-marker-alt"></i><span>Ver no Mapa</span></div>
+                    </div>
+                    <div class="loja-info">
+                        <h3>Taquara - Santa Maria</h3>
+                        <p class="loja-endereco">Av. Oscar Martins Rangel, 3621<br>Santa Maria, Taquara - RS</p>
+                    </div>
+                </a>
+                <a href="https://www.google.com/maps/search/?api=1&query=R.+Vera+Cruz,+285,+Sala+2,+Centro,+Parobé,+RS" target="_blank" class="loja-card">
+                    <div class="loja-imagem">
+                        <img src="/imagens/lojas/parobe.jpg" alt="Certo Atacado - Parobé" onerror="this.parentElement.style.background='#ff6600'">
+                        <div class="loja-overlay"><i class="fas fa-map-marker-alt"></i><span>Ver no Mapa</span></div>
+                    </div>
+                    <div class="loja-info">
+                        <h3>Parobé - Centro</h3>
+                        <p class="loja-endereco">R. Vera Cruz, 285, Sala 2<br>Centro, Parobé - RS</p>
+                    </div>
+                </a>
+                <a href="https://www.google.com/maps/search/?api=1&query=Av.+Sebastião+Amoretti,+3595,+Cruzeiro,+Taquara,+RS" target="_blank" class="loja-card">
+                    <div class="loja-imagem">
+                        <img src="/imagens/lojas/taquara-cruzeiro.jpg" alt="Certo Atacado - Taquara Cruzeiro" onerror="this.parentElement.style.background='#ff6600'">
+                        <div class="loja-overlay"><i class="fas fa-map-marker-alt"></i><span>Ver no Mapa</span></div>
+                    </div>
+                    <div class="loja-info">
+                        <h3>Taquara - Cruzeiro</h3>
+                        <p class="loja-endereco">Av. Sebastião Amoretti, 3595<br>Cruzeiro, Taquara - RS</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section footer-brand">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"><i class="fas fa-check"></i></div>
+                    <div>
+                        <div class="footer-logo-name">Certo</div>
+                        <div class="footer-logo-sub">Atacado & Varejo</div>
+                    </div>
+                </div>
+                <p class="footer-desc">Lugar certo de comprar barato.<br>Qualidade e economia para você e sua família.</p>
+            </div>
+            <div class="footer-section">
+                <h3 class="footer-title">Informações</h3>
+                <ul class="footer-list">
+                    <li><i class="fas fa-clock footer-list-icon"></i><div><strong>Horário de Funcionamento</strong><span>Seg a Dom: 8h–20h</span></div></li>
+                    <li><i class="fas fa-map-marker-alt footer-list-icon"></i><div><strong>Localização</strong><span>Taquara, RS</span></div></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3 class="footer-title">Contato</h3>
+                <ul class="footer-list">
+                    <li><i class="fas fa-envelope footer-list-icon"></i><div><span>contato@certoatacado.com</span></div></li>
+                    <li><i class="fas fa-phone footer-list-icon"></i><div><span>(51) 9119-8639 — Fale Conosco</span></div></li>
+                    <li><i class="fab fa-whatsapp footer-list-icon"></i><div><span>(51) 9707-8458 — Televendas</span></div></li>
+                    <li><i class="fas fa-briefcase footer-list-icon"></i><div><span>(51) 9475-8382 — Trabalhe Conosco</span></div></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3 class="footer-title">Redes Sociais</h3>
+                <div class="social-links">
+                    <a href="https://www.facebook.com" target="_blank" class="social-btn"><i class="fab fa-facebook-f"></i></a>
+                    <a href="https://www.instagram.com" target="_blank" class="social-btn"><i class="fab fa-instagram"></i></a>
+                    <a href="https://www.linkedin.com/company/grupo-muller-rs/" target="_blank" class="social-btn"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- BANDEIRAS DE PAGAMENTO -->
+        <div class="footer-payments-block">
+            <h4 class="payment-title">Formas de Pagamento</h4>
+            <div class="payment-icons-grid">
+                <div class="pay-icon" title="Visa"><i class="fab fa-cc-visa"></i></div>
+                <div class="pay-icon" title="Mastercard"><i class="fab fa-cc-mastercard"></i></div>
+                <div class="pay-icon" title="American Express"><i class="fab fa-cc-amex"></i></div>
+                <div class="pay-icon" title="Discover"><i class="fab fa-cc-discover"></i></div>
+                <div class="pay-icon" title="JCB"><i class="fab fa-cc-jcb"></i></div>
+                <div class="pay-icon" title="Diners Club"><i class="fab fa-cc-diners-club"></i></div>
+                <div class="pay-icon" title="Pix"><i class="fas fa-qrcode"></i></div>
+                <div class="pay-icon" title="Dinheiro"><i class="fas fa-money-bill-wave"></i></div>
+            </div>
+            <p class="payment-obs">* Aceitamos todas as principais bandeiras e cartões de benefícios.</p>
+        </div>
+
+        <!-- PESQUISA DE SATISFAÇÃO -->
+        <div style="text-align:center;padding:20px;background:#fff8f0;border-top:1px solid #eee;margin:20px 0 0 0;">
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdBeayGD-8Wn8z8MWIz0jn2OZwkli5vCjHD1h2TxmEOXC_Q_w/viewform" 
+               target="_blank" 
+               style="display:inline-flex;align-items:center;gap:8px;color:#ff6600;text-decoration:none;font-weight:600;font-size:14px;">
+                <i class="fas fa-poll"></i> Pesquisa de Satisfação
+            </a>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Certo Atacado &amp; Varejo. Todos os direitos reservados.</p>
+            <div class="footer-bottom-links">
+                <a href="#">Política de Privacidade</a>
+                <a href="#">Termos de Uso</a>
+                <a href="/index.html" class="admin-link-footer" title="Acesso Administrativo">🔒 Acesso Restrito</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL LEITOR DE ENCARTES -->
+    <div class="modal" id="modal-leitor">
+        <div class="modal-content">
+            <button class="modal-close" onclick="fecharLeitor()">&times;</button>
+            <div class="reader-toolbar">
+                <div class="toolbar-left" style="display:flex;align-items:center;gap:12px;">
+                    <button class="btn-compre-online" onclick="window.open('https://wa.me/555197078458?text=Olá, vim pelo encarte','_blank')"><i class="fas fa-headset"></i> FALE COM O COMERCIAL</button>
+                    <div class="share-container">
+                        <button class="btn-icon" onclick="toggleShareMenu()" title="Compartilhar"><i class="fas fa-share-alt"></i></button>
+                        <div class="share-menu" id="share-menu">
+                            <button class="share-menu-item whatsapp" onclick="compartilharWhatsApp()"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                            <button class="share-menu-item instagram" onclick="compartilharInstagram()"><i class="fab fa-instagram"></i> Instagram</button>
+                            <button class="share-menu-item facebook" onclick="compartilharFacebook()"><i class="fab fa-facebook"></i> Facebook</button>
+                            <button class="share-menu-item download" onclick="baixarImagem()"><i class="fas fa-download"></i> Baixar Página</button>
+                        </div>
+                    </div>
+                    <button class="btn-icon" onclick="alternarZoom()" title="Zoom"><i class="fas fa-search-plus"></i></button>
+                    <button class="btn-icon" onclick="alternarTelaCheia()" title="Tela Cheia"><i class="fas fa-expand"></i></button>
+                </div>
+                <div class="page-counter" id="page-counter">Página 1 de 1</div>
+            </div>
+            <div class="reader-image-container" id="reader-container">
+                <button class="reader-nav-btn prev" onclick="mudarPagina(-1)" disabled>❮</button>
+                <img src="" alt="" class="reader-image" id="reader-imagem">
+                <button class="reader-nav-btn next" onclick="mudarPagina(1)" disabled>❯</button>
+            </div>
+            <div class="reader-info">
+                <span class="reader-categoria" id="reader-categoria"></span>
+                <h2 class="reader-titulo" id="reader-titulo"></h2>
+                <div class="reader-datas" id="reader-datas"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/site.js"></script>
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu) menu.classList.toggle('active');
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('menu-toggle')?.addEventListener('click', toggleMenu);
+            document.querySelectorAll('.nav-link-mobile').forEach(link => {
+                link.addEventListener('click', () => {
+                    document.getElementById('mobile-menu')?.classList.remove('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
