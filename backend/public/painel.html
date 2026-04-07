@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - Certo Atacado</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- SIDEBAR -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-check-circle"></i> Certo Admin</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" onclick="mostrarSecao('encartes'); return false;">
+                    <i class="fas fa-newspaper"></i><span>Encartes</span>
+                </a>
+                <a href="#" class="nav-item" onclick="mostrarSecao('sorteios'); return false;">
+                    <i class="fas fa-gift"></i><span>Sorteios</span>
+                </a>
+                <a href="#" class="nav-item" onclick="mostrarSecao('categorias'); return false;">
+                    <i class="fas fa-tags"></i><span>Categorias</span>
+                </a>
+                <a href="/site.html" class="nav-item"><i class="fas fa-external-link-alt"></i><span>Ver Site</span></a>
+                <a href="#" class="nav-item" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i><span>Sair</span></a>
+            </nav>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="admin-main">
+            <header class="admin-header">
+                <h1>Painel Administrativo</h1>
+                <div class="user-info"><span id="userName">Administrador</span></div>
+            </header>
+
+            <!-- SEÇÃO ENCARTES -->
+            <section class="admin-section active" id="section-encartes">
+                <h2 class="admin-title">📰 Gerenciar Encartes</h2>
+                
+                <div class="admin-card">
+                    <h3 class="admin-subtitle">Criar/Editar Encarte</h3>
+                    <form id="encarteForm" enctype="multipart/form-data">
+                        <input type="hidden" id="encarteId">
+                        
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="encarteTitulo">Título do Encarte *</label>
+                                <input type="text" id="encarteTitulo" required placeholder="Ex: Promoção de Páscoa">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="encarteCategoria">Categoria *</label>
+                                <select id="encarteCategoria" required>
+                                    <option value="">Carregando...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="encarteDataInicio">Data de Início *</label>
+                                <input type="date" id="encarteDataInicio" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="encarteDataFim">Data de Término *</label>
+                                <input type="date" id="encarteDataFim" required>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="encarteImagem">Imagens do Encarte *</label>
+                                <input type="file" id="encarteImagem" accept="image/*" multiple required>
+                                <small class="form-hint">Formatos: JPG, PNG, WebP. Max: 5MB cada. Selecione múltiplas páginas (Ctrl+Clique)</small>
+                                <div id="encartePreview" class="image-preview-multiple"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="limparFormEncarte()"><i class="fas fa-times"></i> Limpar</button>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Encarte</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="admin-card">
+                    <h3 class="admin-subtitle">Encartes Cadastrados</h3>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr><th>Imagem</th><th>Título</th><th>Categoria</th><th>Período</th><th>Ações</th></tr>
+                            </thead>
+                            <tbody id="encartesList">
+                                <tr><td colspan="5" class="text-center"><div class="loading">Carregando encartes...</div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SEÇÃO SORTEIOS -->
+            <section class="admin-section" id="section-sorteios" style="display: none;">
+                <h2 class="admin-title">🎁 Gerenciar Sorteios</h2>
+                
+                <div class="admin-card">
+                    <h3 class="admin-subtitle">Criar/Editar Sorteio</h3>
+                    <form id="sorteioForm" enctype="multipart/form-data">
+                        <input type="hidden" id="sorteioId">
+                        
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="sorteioTitulo">Título do Sorteio *</label>
+                                <input type="text" id="sorteioTitulo" required placeholder="Ex: Sorteio de Páscoa">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="sorteioDescricao">Descrição</label>
+                                <textarea id="sorteioDescricao" rows="3" placeholder="Descreva o prêmio, regras, etc."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sorteioDataInicio">Data de Início *</label>
+                                <input type="date" id="sorteioDataInicio" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="sorteioDataFim">Data de Término *</label>
+                                <input type="date" id="sorteioDataFim" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="sorteioImagem">Imagem do Sorteio *</label>
+                                <input type="file" id="sorteioImagem" accept="image/*" required>
+                                <small class="form-hint">Formatos: JPG, PNG, WebP. Max: 5MB</small>
+                                <div id="sorteioPreview" class="image-preview" style="display: none;">
+                                    <img src="" alt="Preview">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="limparFormSorteio()"><i class="fas fa-times"></i> Limpar</button>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Sorteio</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="admin-card">
+                    <h3 class="admin-subtitle">Sorteios Cadastrados</h3>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr><th>Imagem</th><th>Título</th><th>Período</th><th>Status</th><th>Ações</th></tr>
+                            </thead>
+                            <tbody id="sorteiosList">
+                                <tr><td colspan="5" class="text-center"><div class="loading">Carregando sorteios...</div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SEÇÃO CATEGORIAS -->
+            <section class="admin-section" id="section-categorias" style="display: none;">
+                <h2 class="admin-title">🏷️ Gerenciar Categorias</h2>
+                
+                <div class="admin-card">
+                    <h3 class="admin-subtitle">Criar/Editar Categoria</h3>
+                    <form id="categoriaForm">
+                        <input type="hidden" id="categoriaId">
+                        
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="categoriaNome">Nome da Categoria *</label>
+                                <input type="text" id="categoriaNome" required placeholder="Ex: Páscoa 2026">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="categoriaDescricao">Descrição</label>
+                                <textarea id="categoriaDescricao" rows="2" placeholder="Ex: Ofertas especiais de Páscoa"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="categoriaCor">Cor</label>
+                                <input type="color" id="categoriaCor" value="#ff6600">
+                            </div>
+                            <div class="form-group">
+                                <label for="categoriaIcone">Ícone (Emoji)</label>
+                                <input type="text" id="categoriaIcone" placeholder="🏷️" value="🏷️" maxlength="5">
+                            </div>
+                            <div class="form-group">
+                                <label for="categoriaOrdem">Ordem</label>
+                                <input type="number" id="categoriaOrdem" value="0" min="0">
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="limparFormCategoria()"><i class="fas fa-times"></i> Limpar</button>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Categoria</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="admin-card">
+                    <h3 class="admin-subtitle">Categorias Cadastradas</h3>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr><th>Ícone</th><th>Nome</th><th>Descrição</th><th>Cor</th><th>Ordem</th><th>Ações</th></tr>
+                            </thead>
+                            <tbody id="categoriasList">
+                                <tr><td colspan="6" class="text-center"><div class="loading">Carregando categorias...</div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/js/painel.js"></script>
+</body>
+</html>

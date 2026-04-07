@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Certo Atacado</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #ff6600 0%, #ff8533 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #ff6600;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .logo p {
+            color: #666;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #f9f9f9;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #ff6600;
+            background: white;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #ff6600;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-login:hover {
+            background: #e65c00;
+        }
+
+        .error {
+            background: #ffe6e6;
+            color: #cc0000;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        /* NOVO ESTILO PARA O LINK DE RECUPERAÇÃO */
+        .forgot-password {
+            margin-top: 20px;
+            display: block;
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .forgot-password:hover {
+            color: #ff6600;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>🛒 Certo Atacado</h1>
+            <p>Painel Administrativo</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <form onsubmit="fazerLogin(event)">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" required placeholder="admin@certoatacado.com">
+            </div>
+
+            <div class="form-group">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" required placeholder="Sua senha">
+            </div>
+
+            <button type="submit" class="btn-login">ENTRAR</button>
+
+            <!-- ADICIONADO AQUI -->
+          <a href="solicitar-recuperacao.html" class="forgot-password">Esqueceu a senha?</a>
+        </form>
+    </div>
+
+    <script>
+        // Verificar se já está logado
+        if (localStorage.getItem('token')) {
+            window.location.href = '/painel.html';
+        }
+
+        async function fazerLogin(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const errorDiv = document.getElementById('error');
+
+            try {
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('admin', JSON.stringify(data.admin));
+                    window.location.href = '/painel.html';
+                } else {
+                    errorDiv.textContent = data.erro || 'Erro ao fazer login';
+                    errorDiv.classList.add('show');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Erro de conexão. Verifique se o servidor está rodando.';
+                errorDiv.classList.add('show');
+            }
+        }
+    </script>
+</body>
+</html>
