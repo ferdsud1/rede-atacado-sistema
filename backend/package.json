@@ -9,12 +9,7 @@
     "start": "node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [
-    "atacado",
-    "encartes",
-    "api",
-    "typescript"
-  ],
+  "keywords": ["atacado", "encartes", "api", "typescript"],
   "author": "Fernando",
   "license": "ISC",
   "dependencies": {
@@ -23,6 +18,7 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^8.3.1",
+    "file-type": "^16.5.4",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.1.1",
@@ -40,6 +36,7 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^20.10.5",
     "@types/nodemailer": "^7.0.11",
+    "@types/pg": "^8.6.6",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
   }
