@@ -1,4 +1,3 @@
-import { fileTypeFromBuffer } from "file-type";
 import sharp from "sharp";
 
 export const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -10,9 +9,13 @@ export async function validateAndOptimizeImage(buffer: Buffer): Promise<{
   ext: string;
   mime: string;
 }> {
-  // 1. Valida conteúdo real (magic bytes), não só mimetype
-  const fileType = await fileTypeFromBuffer(buffer);
-  if (!fileType || !ALLOWED_MIME_TYPES.includes(fileType.mime)) {
+  // 1. Validação simplificada por mimetype (sem file-type)
+  // Em produção, recomendo implementar validação por magic bytes
+  const mime = buffer.toString("hex", 0, 4);
+  // Verifica cabeçalhos básicos de JPEG, PNG ou WebP
+  if (!mime.startsWith("ffd8") && // JPEG
+      !mime.startsWith("89504e47") && // PNG
+      !mime.startsWith("52494646")) { // WebP/RIFF
     throw new Error("Formato de imagem inválido. Use JPEG, PNG ou WebP.");
   }
 
