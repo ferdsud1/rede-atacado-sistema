@@ -5,7 +5,7 @@ import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 const router = Router();
 const service = new AdminService();
-
+   
 // ==========================================
 // ROTAS PÚBLICAS
 // ==========================================
@@ -98,39 +98,41 @@ router.get("/validar-token", authMiddleware, async (req: AuthRequest, res) => {
     }
 });
 
+// ❌ COMENTADO TEMPORARIAMENTE - Método não existe no AdminService
 // GET /admin/listar - Listar todos admins
-router.get("/listar", authMiddleware, async (req: AuthRequest, res) => {
-    try {
-        const admins = await service.listarTodos();
-        return res.json(admins);
-    } catch (err: any) {
-        console.error("Erro ao listar admins:", err);
-        return res.status(500).json({ erro: err.message });
-    }
-});
+// router.get("/listar", authMiddleware, async (req: AuthRequest, res) => {
+//     try {
+//         const admins = await service.listarTodos();
+//         return res.json(admins);
+//     } catch (err: any) {
+//         console.error("Erro ao listar admins:", err);
+//         return res.status(500).json({ erro: err.message });
+//     }
+// });
 
+// ❌ COMENTADO TEMPORARIAMENTE - Método não existe no AdminService
 // PUT /admin/atualizar/:id - Atualizar admin
-router.put("/atualizar/:id", authMiddleware, async (req: AuthRequest, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        const { nome, email, senha } = req.body;
+// router.put("/atualizar/:id", authMiddleware, async (req: AuthRequest, res) => {
+//     try {
+//         const id = parseInt(req.params.id);
+//         const { nome, email, senha } = req.body;
 
-        if (isNaN(id)) {
-            return res.status(400).json({ erro: "ID inválido" });
-        }
+//         if (isNaN(id)) {
+//             return res.status(400).json({ erro: "ID inválido" });
+//         }
 
-        const data: any = {};
-        if (nome) data.nome = nome;
-        if (email) data.email = email;
-        if (senha) data.senha = senha;
+//         const data: any = {};
+//         if (nome) data.nome = nome;
+//         if (email) data.email = email;
+//         if (senha) data.senha = senha;
 
-        const admin = await service.atualizar(id, data);
-        return res.json(admin);
-    } catch (err: any) {
-        console.error("Erro ao atualizar admin:", err);
-        return res.status(400).json({ erro: err.message });
-    }
-});
+//         const admin = await service.atualizar(id, data);
+//         return res.json(admin);
+//     } catch (err: any) {
+//         console.error("Erro ao atualizar admin:", err);
+//         return res.status(400).json({ erro: err.message });
+//     }
+// });
 
 // DELETE /admin/excluir/:id - Excluir admin
 router.delete("/excluir/:id", authMiddleware, async (req: AuthRequest, res) => {

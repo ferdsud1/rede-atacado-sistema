@@ -39,7 +39,7 @@ export async function testConnection(): Promise<void> {
         const client = await pool.connect();
         console.log('🟢 Banco de dados conectado e pronto!');
         client.release();
-    } catch (err) {
+    } catch (err:any) {
         console.error('🔴 Falha ao conectar no banco de dados:', err);
         throw err;
     }
