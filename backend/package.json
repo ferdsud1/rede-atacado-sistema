@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Sistema de gestão de encartes para atacado",
   "main": "dist/server.js",
-  "type": "commonjs",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
@@ -30,8 +29,7 @@
     "nodemailer": "^8.0.4",
     "pg": "^8.11.3",
     "sharp": "^0.34.5",
-    "zod": "^4.3.6",
-    "@types/node": "^20.0.0"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
