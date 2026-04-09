@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 async function carregarEncartes() {
     try {
-        const response = await fetch('/encartes/ativos');
+       const response = await fetch('/encartes/ativos');
         if (!response.ok) throw new Error('Falha na conexão');
         
         const encartes = await response.json();
@@ -481,6 +481,11 @@ async function carregarDadosEmpresa() {
     } catch (error) {
         console.error('Erro ao carregar dados da empresa:', error);
     }
+}
+
+function formatarData(data) {
+    if (!data) return '';
+    return new Date(data).toLocaleDateString('pt-BR');
 }
 
 function formatarData(data) {
