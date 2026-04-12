@@ -3,7 +3,6 @@ import { CreateEncarteDTO, UpdateEncarteDTO, EncarteResponseDTO, EncarteAtivoDTO
 import { processImage } from "../utils/imageProcessor";
 import { randomUUID } from "crypto";
 import cloudinary from "../config/cloudinary";
-import { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 
 const repo = new EncarteRepository();
 
@@ -30,10 +29,10 @@ export class EncarteService {
                         { quality: 'auto' },
                         { fetch_format: 'auto' }
                     ]
-                }, (error: UploadApiErrorResponse | null, result?: UploadApiResponse) => {
-                    if (error) reject(error);
+                }, (err: any, result: any) => {
+                    if (err) reject(err);
                     else if (result?.secure_url) resolve(result.secure_url);
-                    else reject(new Error('Upload falhou'));
+                    else reject(new Error('Upload falhou - sem URL'));
                 });
             } catch (err) {
                 reject(err);
