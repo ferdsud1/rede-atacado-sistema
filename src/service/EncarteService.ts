@@ -1,23 +1,43 @@
 import { EncarteRepository } from "../repository/EncarteRepository";
 import { CreateEncarteDTO, UpdateEncarteDTO, EncarteResponseDTO, EncarteAtivoDTO } from "../entity/EncarteDTO";
-import { processImage } from "../utils/imageProcessor";
+import { v2 as cloudinary } from "cloudinary";
 import { randomUUID } from "crypto";
-import cloudinary from "../config/cloudinary";
 
 const repo = new EncarteRepository();
 
 export class EncarteService {
 
-    // ==========================================
-    // UPLOAD DE IMAGENS PARA CLOUDINARY
-    // ==========================================
+    async salvarImagemBase64(base64String: string): Promise<string> {
+        return new Promise<string>(async (resolve, reject) => {
+            try {
+                // Remove o prefixo data:image/...;base64, se existir
+                const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
+                
+                cloudinary.uploader.upload(`data:image/jpeg;base64,${base64Data}`, {
+                    folder: 'certo-atacado/encartes',
+                    resource_type: 'auto',
+                    public_id: `${randomUUID()}`,
+                    transformation: [
+                        { width: 1920, height: 1920, crop: 'limit' },
+                        { quality: 'auto' },
+                        { fetch_format: 'auto' }
+                    ]
+                }, (err, result) => {
+                    if (err) reject(err);
+                    else if (result?.secure_url) resolve(result.secure_url);
+                    else reject(new Error('Upload falhou - sem URL'));
+                });
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
 
     async salvarImagem(file: Express.Multer.File): Promise<string> {
         return new Promise<string>(async (resolve, reject) => {
             try {
-                const { buffer: optimizedBuffer, ext } = await processImage(file.buffer);
-                const b64 = optimizedBuffer.toString('base64');
-                const mimetype = file.mimetype.startsWith('image/') ? file.mimetype : `image/${ext.replace('.', '')}`;
+                const b64 = file.buffer.toString('base64');
+                const mimetype = file.mimetype.startsWith('image/') ? file.mimetype : `image/jpeg`;
                 const dataURI = `${mimetype};base64,${b64}`;
                 
                 cloudinary.uploader.upload(dataURI, {
@@ -29,13 +49,13 @@ export class EncarteService {
                         { quality: 'auto' },
                         { fetch_format: 'auto' }
                     ]
-                }, (err: any, result: any) => {
+                }, (err, result) => {
                     if (err) reject(err);
                     else if (result?.secure_url) resolve(result.secure_url);
                     else reject(new Error('Upload falhou - sem URL'));
                 });
-            } catch (err) {
-                reject(err);
+            } catch (error) {
+                reject(error);
             }
         });
     }
@@ -62,11 +82,7 @@ export class EncarteService {
         await Promise.all(promises);
     }
 
-    // ==========================================
-    // CRIAÇÃO
-    // ==========================================
-
-    async criar(data: any): Promise<EncarteResponseDTO> {
+    async criar(data: CreateEncarteDTO): Promise<EncarteResponseDTO> {
         const dInicio = data.data_inicio instanceof Date ? data.data_inicio : new Date(data.data_inicio);
         const dFim = data.data_fim instanceof Date ? data.data_fim : new Date(data.data_fim);
 
@@ -112,9 +128,13 @@ export class EncarteService {
         return await this.criar({ ...data, imagem_url, categoria_id: data.categoria_id ?? null });
     }
 
-    // ==========================================
-    // LEITURA
-    // ==========================================
+    async criarComBase64(
+        data: Omit<CreateEncarteDTO, "imagem_url">,
+        base64String: string
+    ): Promise<EncarteResponseDTO> {
+        const imagem_url = await this.salvarImagemBase64(base64String);
+        return await this.criar({ ...data, imagem_url, categoria_id: data.categoria_id ?? null });
+    }
 
     async listarAtivos(): Promise<EncarteAtivoDTO[]> {
         await this.desativarExpirados();
@@ -133,11 +153,7 @@ export class EncarteService {
         return await repo.listarFuturos();
     }
 
-    // ==========================================
-    // ATUALIZAÇÃO
-    // ==========================================
-
-    async atualizar(id: number, data: any): Promise<EncarteResponseDTO> {
+    async atualizar(id: number, data: UpdateEncarteDTO): Promise<EncarteResponseDTO> {
         const existente = await repo.buscarPorId(id);
         if (!existente) throw new Error("Encarte não encontrado");
 
@@ -180,10 +196,6 @@ export class EncarteService {
         return await this.atualizar(id, { ...data, imagem_url });
     }
 
-    // ==========================================
-    // EXCLUSÃO
-    // ==========================================
-
     async excluir(id: number): Promise<{ mensagem: string }> {
         const encarte = await repo.buscarPorId(id);
         if (!encarte) throw new Error("Encarte não encontrado");
@@ -198,10 +210,6 @@ export class EncarteService {
         await repo.excluir(id);
         return { mensagem: "Encarte excluído com sucesso!" };
     }
-
-    // ==========================================
-    // UTILITÁRIOS
-    // ==========================================
 
     async alterarStatus(id: number, ativo: boolean): Promise<EncarteResponseDTO> {
         return await this.atualizar(id, { ativo });
