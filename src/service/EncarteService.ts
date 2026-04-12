@@ -2,55 +2,72 @@ import { EncarteRepository } from "../repository/EncarteRepository";
 import { CreateEncarteDTO, UpdateEncarteDTO, EncarteResponseDTO, EncarteAtivoDTO } from "../entity/EncarteDTO";
 import { processImage } from "../utils/imageProcessor";
 import { randomUUID } from "crypto";
-import fs from "fs";
-import path from "path";
+import cloudinary from "../config/cloudinary";
 
 const repo = new EncarteRepository();
-const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || "./uploads");
-
-if (!fs.existsSync(UPLOAD_DIR)) {
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
 
 export class EncarteService {
 
     // ==========================================
-    // UPLOAD DE IMAGENS
+    // UPLOAD DE IMAGENS PARA CLOUDINARY
     // ==========================================
 
     async salvarImagem(file: Express.Multer.File): Promise<string> {
-        const { buffer: optimizedBuffer, ext } = await processImage(file.buffer);
-        const filename = `${randomUUID()}${ext}`;
-        const filepath = path.join(UPLOAD_DIR, filename);
-        fs.writeFileSync(filepath, optimizedBuffer);
-        return `/uploads/${filename}`;
+        return new Promise<string>(async (resolve, reject) => {
+            try {
+                // Otimiza a imagem antes de enviar
+                const { buffer: optimizedBuffer, ext } = await processImage(file.buffer);
+                
+                // Converte buffer para base64
+                const b64 = optimizedBuffer.toString('base64');
+                const mimetype = file.mimetype.startsWith('image/') ? file.mimetype : `image/${ext.replace('.', '')}`;
+                const dataURI = `${mimetype};base64,${b64}`;
+                
+                // Upload para Cloudinary
+                cloudinary.uploader.upload(dataURI, {
+                    folder: 'certo-atacado/encartes',
+                    resource_type: 'auto',
+                    public_id: `${randomUUID()}`,
+                    transformation: [
+                        { width: 1920, height: 1920, crop: 'limit' }, // Limita tamanho máximo
+                        { quality: 'auto' }, // Compressão inteligente
+                        { fetch_format: 'auto' } // Converte para WebP se possível
+                    ]
+                }, (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result!.secure_url);
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
     }
 
     async salvarImagens(files: Express.Multer.File[]): Promise<string[]> {
-        const urls: string[] = [];
-        for (const file of files) {
-            const { buffer: optimizedBuffer, ext } = await processImage(file.buffer);
-            const filename = `${randomUUID()}${ext}`;
-            const filepath = path.join(UPLOAD_DIR, filename);
-            fs.writeFileSync(filepath, optimizedBuffer);
-            urls.push(`/uploads/${filename}`);
-        }
-        return urls;
+        const uploadPromises = files.map(file => this.salvarImagem(file));
+        return Promise.all(uploadPromises);
     }
 
     async deletarImagem(imagemUrl: string): Promise<void> {
         try {
-            const filename = imagemUrl.split("/").pop();
-            if (!filename) return;
-            const filepath = path.join(UPLOAD_DIR, filename);
-            if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+            // Extrai o public_id da URL do Cloudinary
+            // URL exemplo: https://res.cloudinary.com/xyz/image/upload/v1234567890/certo-atacado/encartes/abc123.jpg
+            const urlParts = imagemUrl.split('/');
+            const filenameWithExt = urlParts[urlParts.length - 1];
+            const filename = filenameWithExt.split('.')[0];
+            const publicId = `certo-atacado/encartes/${filename}`;
+            
+            // Deleta do Cloudinary
+            await cloudinary.uploader.destroy(publicId);
         } catch (error) {
-            console.error("Erro ao deletar imagem:", error);
+            console.error("Erro ao deletar imagem do Cloudinary:", error);
+            // Não lança erro para não quebrar o fluxo principal
         }
     }
 
     async deletarImagens(urls: string[]): Promise<void> {
-        for (const url of urls) await this.deletarImagem(url);
+        const deletePromises = urls.map(url => this.deletarImagem(url));
+        await Promise.all(deletePromises);
     }
 
     // ==========================================
@@ -73,11 +90,10 @@ export class EncarteService {
             principal = data.imagens[0];
         }
 
-        // ✅ CORREÇÃO: Usar undefined em vez de null
         return await repo.criar({
             titulo: data.titulo,
-            imagem_url: principal,  // ✅ undefined se vazio
-            imagens: data.imagens || undefined,  // ✅ undefined se vazio
+            imagem_url: principal,
+            imagens: data.imagens || undefined,
             data_inicio: dInicio,
             data_fim: dFim,
             ativo: data.ativo ?? true,
@@ -141,7 +157,7 @@ export class EncarteService {
             if (dFim <= dInicio) throw new Error("Data de término deve ser após a data de início");
         }
 
-        // Deletar imagens antigas se necessário
+        // Deletar imagens antigas do Cloudinary se estiver substituindo
         if (data.imagens && Array.isArray(data.imagens)) {
             const e = existente as any;
             if (e.imagens && Array.isArray(e.imagens)) {
@@ -152,7 +168,7 @@ export class EncarteService {
         }
 
         const atualizado = await repo.atualizar(id, data);
-        if (!atualizado) throw new Error("Falha ao atualizar encarte");  // ✅ Verifica null
+        if (!atualizado) throw new Error("Falha ao atualizar encarte");
         
         return atualizado;
     }
@@ -183,7 +199,7 @@ export class EncarteService {
         const encarte = await repo.buscarPorId(id);
         if (!encarte) throw new Error("Encarte não encontrado");
 
-        // Deletar imagens associadas
+        // Deletar imagens associadas do Cloudinary
         const e = encarte as any;
         if (e.imagens && Array.isArray(e.imagens)) {
             await this.deletarImagens(e.imagens);
