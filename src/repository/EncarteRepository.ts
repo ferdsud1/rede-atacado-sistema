@@ -38,7 +38,7 @@ export class EncarteRepository {
         }
     }
 
-    async buscarPorId(id: number): Promise<Encarte | null> {
+    async buscarPorId(id: number):Promise<EncarteResponseDTO | null> {
         try {
             const result = await pool.query(
                 `SELECT 
