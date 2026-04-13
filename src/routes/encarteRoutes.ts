@@ -167,7 +167,7 @@ router.delete("/excluir/:id", authMiddleware, async (req: AuthRequest, res: Resp
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ erro: "ID inválido" });
 
-        const result = awaitservice.deletar(id);
+        const result = await service.deletar(id);
         res.json(result);
     } catch (err: any) {
         console.error("Erro ao excluir encarte:", err);
