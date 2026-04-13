@@ -56,58 +56,29 @@ router.get("/futuros", async (req: Request, res: Response) => {
 // ROTAS PROTEGIDAS (Admin)
 // ==========================================
 
-router.post("/criar", authMiddleware, upload.array("imagem", 20), async (req: Request, res: Response) => {
-    try {
-        const { titulo, data_inicio, data_fim, ativo, categoria_nome, categoria_id, categoria_cor, categoria_icone } = req.body;
-        const files = req.files as Express.Multer.File[];
+// Rota de criar com imagens
+router.post('/com-imagens', upload.array('imagens'), async (req: Request, res: Response) => {
+  try {
+    const dados: CreateEncarteDTO = {
+      titulo: req.body.titulo,
+      data_inicio: req.body.data_inicio,
+      data_fim: req.body.data_fim,
+      ativo: req.body.ativo !== undefined ? req.body.ativo === 'true' : undefined,
+      categoria_id: req.body.categoria_id ? parseInt(req.body.categoria_id) : undefined
+    };
 
-        if (!files || files.length === 0) {
-            return res.status(400).json({ erro: "Pelo menos uma imagem é obrigatória" });
-        }
+    const encarte = await service.criarComImagens(dados, req.files as Express.Multer.File[]);
 
-        if (!titulo || !data_inicio || !data_fim) {
-            return res.status(400).json({ erro: "Título, data de início e término são obrigatórios" });
-        }
-
-        let finalCategoriaId: number | null = null;
-        
-        if (categoria_id !== undefined && categoria_id !== null && categoria_id !== "" && categoria_id !== "null") {
-            finalCategoriaId = parseInt(categoria_id);
-            console.log('✅ Usando categoria_id do select:', finalCategoriaId);
-        } 
-        else if (categoria_nome && categoria_nome.trim() !== "") {
-            const existente = await categoriaService.buscarPorNome(categoria_nome.trim());
-            if (existente) {
-                finalCategoriaId = existente.id;
-            } else {
-                const nova = await categoriaService.criar({
-                    nome: categoria_nome.trim(),
-                    descricao: `Ofertas de ${categoria_nome}`,
-                    cor: categoria_cor || '#ff6600',
-                    icone: categoria_icone || '🏷️',
-                    ativo: true
-                });
-                finalCategoriaId = nova.id;
-            }
-        }
-
-        const encarte = await service.criarComImagens(
-            {
-                titulo,
-                data_inicio,
-                data_fim,
-                ativo: ativo === "true" || ativo === true,
-                categoria_id: finalCategoriaId  ?? undefined 
-            },
-            files
-        );
-
-        res.status(201).json(encarte);
-    } catch (err: any) {
-        console.error("Erro ao criar encarte:", err);
-        res.status(400).json({ erro: err.message });
-    }
+    return res.status(201).json({
+      sucesso: true,
+      mensagem: 'Encarte criado com sucesso',
+      dados: encarte
+    });
+  } catch (error) {
+    // handle error
+  }
 });
+
 
 router.get("/listar", authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
