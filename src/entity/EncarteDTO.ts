@@ -27,6 +27,7 @@ export interface UpdateEncarteDTO {
     imagens?: string[];  // ✅ ADICIONE ISSO
     data_inicio?: Date | string;
     data_fim?: Date | string;
+      imagem_base64?: string;
     ativo?: boolean;
     categoria_id?: number | null;
 }
