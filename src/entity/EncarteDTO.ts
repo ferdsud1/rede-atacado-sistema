@@ -11,16 +11,15 @@ export interface Encarte {
     criado_em?: Date;
 }
 
-export interface CreateEncarteDTO {
+export class CreateEncarteDTO {
     titulo: string;
-    imagem_url?: string;
-    imagens?: string[];  // ✅ ADICIONE ISSO
-    data_inicio: Date | string;
-    data_fim: Date | string;
-    ativo?: boolean;
-    categoria_id?: number | null;
+    descricao?: string;
+    data_inicio: Date;
+    data_fim: Date;
+    categoria_id: number;
+    imagem_base64?: string;  // ✅ Adicione esta propriedade
+    loja_id?: number;
 }
-
 export interface UpdateEncarteDTO {
     titulo?: string;
     imagem_url?: string;
