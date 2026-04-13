@@ -1,108 +1,134 @@
 import { EncarteRepository } from "../repository/EncarteRepository";
 import { CreateEncarteDTO, UpdateEncarteDTO, EncarteResponseDTO, EncarteAtivoDTO } from "../entity/EncarteDTO";
-import { v2 as cloudinary } from "cloudinary";
+import { processImage } from "../utils/imageProcessor";
 import { randomUUID } from "crypto";
+import fs from "fs/promises";
+import path from "path";
 
 const repo = new EncarteRepository();
+const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || "./uploads");
+
+// Garantir que o diretório de uploads exista
+const ensureUploadDir = async () => {
+    try {
+        await fs.access(UPLOAD_DIR);
+    } catch {
+        await fs.mkdir(UPLOAD_DIR, { recursive: true });
+    }
+};
 
 export class EncarteService {
 
-    async salvarImagemBase64(base64String: string): Promise<string> {
-        return new Promise<string>(async (resolve, reject) => {
-            try {
-                // Remove o prefixo data:image/...;base64, se existir
-                const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
-                
-                cloudinary.uploader.upload(`data:image/jpeg;base64,${base64Data}`, {
-                    folder: 'certo-atacado/encartes',
-                    resource_type: 'auto',
-                    public_id: `${randomUUID()}`,
-                    transformation: [
-                        { width: 1920, height: 1920, crop: 'limit' },
-                        { quality: 'auto' },
-                        { fetch_format: 'auto' }
-                    ]
-                }, (err, result) => {
-                    if (err) reject(err);
-                    else if (result?.secure_url) resolve(result.secure_url);
-                    else reject(new Error('Upload falhou - sem URL'));
-                });
-            } catch (error) {
-                reject(error);
-            }
-        });
+    // ==========================================
+    // UTILITÁRIOS DE IMAGEM
+    // ==========================================
+
+    private async saveImageFile(buffer: Buffer, ext: string): Promise<string> {
+        await ensureUploadDir();
+        
+        const filename = `${randomUUID()}${ext}`;
+        const filepath = path.join(UPLOAD_DIR, filename);
+        
+        await fs.writeFile(filepath, buffer);
+        return `/uploads/${filename}`;
     }
 
-    async salvarImagem(file: Express.Multer.File): Promise<string> {
-        return new Promise<string>(async (resolve, reject) => {
-            try {
-                const b64 = file.buffer.toString('base64');
-                const mimetype = file.mimetype.startsWith('image/') ? file.mimetype : `image/jpeg`;
-                const dataURI = `${mimetype};base64,${b64}`;
-                
-                cloudinary.uploader.upload(dataURI, {
-                    folder: 'certo-atacado/encartes',
-                    resource_type: 'auto',
-                    public_id: `${randomUUID()}`,
-                    transformation: [
-                        { width: 1920, height: 1920, crop: 'limit' },
-                        { quality: 'auto' },
-                        { fetch_format: 'auto' }
-                    ]
-                }, (err, result) => {
-                    if (err) reject(err);
-                    else if (result?.secure_url) resolve(result.secure_url);
-                    else reject(new Error('Upload falhou - sem URL'));
-                });
-            } catch (error) {
-                reject(error);
+    private async deleteImageFile(imagemUrl: string): Promise<void> {
+        try {
+            const filename = imagemUrl.split("/").pop();
+            if (!filename) return;
+            
+            const filepath = path.join(UPLOAD_DIR, filename);
+            await fs.access(filepath);
+            await fs.unlink(filepath);
+        } catch (error: any) {
+            if (error.code !== 'ENOENT') {
+                console.error("Erro ao deletar imagem:", error);
             }
-        });
+        }
+    }
+
+    // ==========================================
+    // UPLOAD DE IMAGENS - PÚBLICOS
+    // ==========================================
+
+    async salvarImagem(file: Express.Multer.File): Promise<string> {
+        const { buffer: optimizedBuffer, ext } = await processImage(file.buffer);
+        return await this.saveImageFile(optimizedBuffer, ext);
     }
 
     async salvarImagens(files: Express.Multer.File[]): Promise<string[]> {
-        const promises = files.map(file => this.salvarImagem(file));
+        const promises = files.map(async (file) => {
+            const { buffer: optimizedBuffer, ext } = await processImage(file.buffer);
+            return await this.saveImageFile(optimizedBuffer, ext);
+        });
         return Promise.all(promises);
     }
 
+    async salvarImagemBase64(base64String: string): Promise<string> {
+        // Remove prefixo data:image/...;base64, se existir
+        const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        const { buffer: optimizedBuffer, ext } = await processImage(buffer);
+        return await this.saveImageFile(optimizedBuffer, ext);
+    }
+
     async deletarImagem(imagemUrl: string): Promise<void> {
-        try {
-            const urlParts = imagemUrl.split('/');
-            const filenameWithExt = urlParts[urlParts.length - 1];
-            const filename = filenameWithExt.split('.')[0];
-            const publicId = `certo-atacado/encartes/${filename}`;
-            await cloudinary.uploader.destroy(publicId);
-        } catch (error) {
-            console.error("Erro ao deletar imagem do Cloudinary:", error);
-        }
+        await this.deleteImageFile(imagemUrl);
     }
 
     async deletarImagens(urls: string[]): Promise<void> {
-        const promises = urls.map(url => this.deletarImagem(url));
-        await Promise.all(promises);
+        await Promise.all(urls.map(url => this.deleteImageFile(url)));
     }
 
-    async criar(data: CreateEncarteDTO): Promise<EncarteResponseDTO> {
-        const dInicio = data.data_inicio instanceof Date ? data.data_inicio : new Date(data.data_inicio);
-        const dFim = data.data_fim instanceof Date ? data.data_fim : new Date(data.data_fim);
+    // ==========================================
+    // VALIDAÇÕES
+    // ==========================================
 
+    private validarDatas(dataInicio: Date | string, dataFim: Date | string): void {
+        const dInicio = dataInicio instanceof Date ? dataInicio : new Date(dataInicio);
+        const dFim = dataFim instanceof Date ? dataFim : new Date(dataFim);
+        
+        if (isNaN(dInicio.getTime()) || isNaN(dFim.getTime())) {
+            throw new Error("Datas inválidas");
+        }
         if (dFim <= dInicio) {
             throw new Error("Data de término deve ser após a data de início");
         }
+    }
 
-        let principal: string | undefined = undefined;
-        if (data.imagem_url) {
-            principal = data.imagem_url;
-        } else if (data.imagens && Array.isArray(data.imagens) && data.imagens.length > 0) {
-            principal = data.imagens[0];
-        }
+    private determinarImagemPrincipal(
+        imagemUrl?: string,
+        imagens?: string[]
+    ): string | undefined {
+        if (imagemUrl) return imagemUrl;
+        if (imagens?.length) return imagens[0];
+        return undefined;
+    }
+
+    // ==========================================
+    // CRIAÇÃO
+    // ==========================================
+
+    async criar(data: CreateEncarteDTO): Promise<EncarteResponseDTO> {
+        this.validarDatas(data.data_inicio, data.data_fim);
+
+        const imagemPrincipal = this.determinarImagemPrincipal(
+            data.imagem_url,
+            data.imagens
+        );
 
         return await repo.criar({
             titulo: data.titulo,
-            imagem_url: principal,
-            imagens: data.imagens || undefined,
-            data_inicio: dInicio,
-            data_fim: dFim,
+            imagem_url: imagemPrincipal,
+            imagens: data.imagens?.length ? data.imagens : undefined,
+            data_inicio: data.data_inicio instanceof Date 
+                ? data.data_inicio 
+                : new Date(data.data_inicio),
+            data_fim: data.data_fim instanceof Date 
+                ? data.data_fim 
+                : new Date(data.data_fim),
             ativo: data.ativo ?? true,
             categoria_id: data.categoria_id ?? null
         });
@@ -112,12 +138,12 @@ export class EncarteService {
         data: Omit<CreateEncarteDTO, "imagem_url" | "imagens">,
         files: Express.Multer.File[]
     ): Promise<EncarteResponseDTO> {
-        const imagensUrls = await this.salvarImagens(files);
-        return await this.criar({
-            ...data,
-            imagens: imagensUrls,
-            categoria_id: data.categoria_id ?? null
-        });
+        if (!files?.length) {
+            throw new Error("Pelo menos uma imagem é obrigatória");
+        }
+        
+        const imagens = await this.salvarImagens(files);
+        return await this.criar({ ...data, imagens });
     }
 
     async criarComImagem(
@@ -125,16 +151,24 @@ export class EncarteService {
         file: Express.Multer.File
     ): Promise<EncarteResponseDTO> {
         const imagem_url = await this.salvarImagem(file);
-        return await this.criar({ ...data, imagem_url, categoria_id: data.categoria_id ?? null });
+        return await this.criar({ ...data, imagem_url });
     }
 
     async criarComBase64(
-        data: Omit<CreateEncarteDTO, "imagem_url">,
+        data: Omit<CreateEncarteDTO, 'imagem_base64'>,
         base64String: string
     ): Promise<EncarteResponseDTO> {
+        if (!base64String) {
+            throw new Error("String base64 da imagem é obrigatória");
+        }
+        
         const imagem_url = await this.salvarImagemBase64(base64String);
-        return await this.criar({ ...data, imagem_url, categoria_id: data.categoria_id ?? null });
+        return await this.criar({ ...data, imagem_url });
     }
+
+    // ==========================================
+    // LEITURA
+    // ==========================================
 
     async listarAtivos(): Promise<EncarteAtivoDTO[]> {
         await this.desativarExpirados();
@@ -153,29 +187,42 @@ export class EncarteService {
         return await repo.listarFuturos();
     }
 
+    // ==========================================
+    // ATUALIZAÇÃO
+    // ==========================================
+
     async atualizar(id: number, data: UpdateEncarteDTO): Promise<EncarteResponseDTO> {
         const existente = await repo.buscarPorId(id);
-        if (!existente) throw new Error("Encarte não encontrado");
-
-        if (data.data_inicio && data.data_fim) {
-            const dInicio = data.data_inicio instanceof Date ? data.data_inicio : new Date(data.data_inicio);
-            const dFim = data.data_fim instanceof Date ? data.data_fim : new Date(data.data_fim);
-            if (dFim <= dInicio) throw new Error("Data de término deve ser após a data de início");
+        if (!existente) {
+            throw new Error("Encarte não encontrado");
         }
 
-        if (data.imagens && Array.isArray(data.imagens)) {
-            const e = existente as any;
-            if (e.imagens && Array.isArray(e.imagens)) {
-                await this.deletarImagens(e.imagens);
-            } else if (e.imagem_url) {
-                await this.deletarImagem(e.imagem_url);
-            }
+        // Validar datas se estiverem sendo atualizadas
+        if (data.data_inicio && data.data_fim) {
+            this.validarDatas(data.data_inicio, data.data_fim);
+        }
+
+        // Deletar imagens antigas se estiverem sendo substituídas
+        if (data.imagens !== undefined || data.imagem_url !== undefined) {
+            await this.limparImagensAntigas(existente);
         }
 
         const atualizado = await repo.atualizar(id, data);
-        if (!atualizado) throw new Error("Falha ao atualizar encarte");
+        if (!atualizado) {
+            throw new Error("Falha ao atualizar encarte");
+        }
         
         return atualizado;
+    }
+
+    private async limparImagensAntigas(encarte: EncarteResponseDTO): Promise<void> {
+        const e = encarte as any;
+        
+        if (e.imagens?.length) {
+            await this.deletarImagens(e.imagens);
+        } else if (e.imagem_url) {
+            await this.deletarImagem(e.imagem_url);
+        }
     }
 
     async atualizarComImagens(
@@ -183,6 +230,12 @@ export class EncarteService {
         data: Partial<Omit<UpdateEncarteDTO, "imagem_url" | "imagens">>,
         files: Express.Multer.File[]
     ): Promise<EncarteResponseDTO> {
+        if (!files?.length) {
+            throw new Error("Pelo menos uma imagem é obrigatória");
+        }
+        
+        await this.limparImagensAntigas(await this.buscarPorId(id) as EncarteResponseDTO);
+        
         const imagens = await this.salvarImagens(files);
         return await this.atualizar(id, { ...data, imagens });
     }
@@ -192,24 +245,42 @@ export class EncarteService {
         data: Partial<Omit<UpdateEncarteDTO, "imagem_url">>,
         file: Express.Multer.File
     ): Promise<EncarteResponseDTO> {
+        await this.limparImagensAntigas(await this.buscarPorId(id) as EncarteResponseDTO);
+        
         const imagem_url = await this.salvarImagem(file);
         return await this.atualizar(id, { ...data, imagem_url });
     }
 
+    async atualizarComBase64(
+        id: number,
+        data: Partial<Omit<UpdateEncarteDTO, "imagem_base64">>,
+        base64String: string
+    ): Promise<EncarteResponseDTO> {
+        await this.limparImagensAntigas(await this.buscarPorId(id) as EncarteResponseDTO);
+        
+        const imagem_url = await this.salvarImagemBase64(base64String);
+        return await this.atualizar(id, { ...data, imagem_url });
+    }
+
+    // ==========================================
+    // EXCLUSÃO
+    // ==========================================
+
     async excluir(id: number): Promise<{ mensagem: string }> {
         const encarte = await repo.buscarPorId(id);
-        if (!encarte) throw new Error("Encarte não encontrado");
-
-        const e = encarte as any;
-        if (e.imagens && Array.isArray(e.imagens)) {
-            await this.deletarImagens(e.imagens);
-        } else if (e.imagem_url) {
-            await this.deletarImagem(e.imagem_url);
+        if (!encarte) {
+            throw new Error("Encarte não encontrado");
         }
 
+        await this.limparImagensAntigas(encarte);
         await repo.excluir(id);
+        
         return { mensagem: "Encarte excluído com sucesso!" };
     }
+
+    // ==========================================
+    // UTILITÁRIOS
+    // ==========================================
 
     async alterarStatus(id: number, ativo: boolean): Promise<EncarteResponseDTO> {
         return await this.atualizar(id, { ativo });
