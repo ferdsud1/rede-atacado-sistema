@@ -1,6 +1,6 @@
 // src/services/EncarteService.ts
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Encarte, CreateEncarteDTO, UpdateEncarteDTO } from '../dtos/EncarteDTO';
+import { Encarte, CreateEncarteDTO, UpdateEncarteDTO } from '../entity/EncarteDTO';
 import { AppError } from '../utils/AppError';
 import { StatusCodes } from 'http-status-codes';
 
