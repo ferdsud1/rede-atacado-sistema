@@ -102,7 +102,13 @@ async function carregarEncartes() {
             throw new Error(err.erro || `Erro ${res.status}`);
         }
         
-        const encartes = await res.json();
+      const data = await response.json();
+
+const encartes = Array.isArray(data) ? data : [];
+
+if (!Array.isArray(data)) {
+    console.error("Resposta inválida:", data);
+}
         
         if (!encartes || encartes.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:40px;color:#999">Nenhum encarte cadastrado</td></tr>';
