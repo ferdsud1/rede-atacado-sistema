@@ -4,11 +4,11 @@ export interface Encarte {
   titulo: string;
   imagem_url: string | null;
   data_inicio: string;
-  data_fim: string;
+  data_fim: string;  // Adicionar este campo
   ativo: boolean;
   criado_em: string;
   categoria_id: number | null;
-  imagens: string[] | null;
+  imagens?: string[];  // Adicionar este campo
   categorias?: {
     id: number;
     nome: string;
@@ -20,15 +20,17 @@ export interface Encarte {
 export interface CreateEncarteDTO {
   titulo: string;
   data_inicio: string;
-  data_fim: string;
+  data_fim: string;  // Adicionar este campo
   ativo?: boolean;
   categoria_id?: number | null;
+  imagens?: string[];  // Adicionar este campo
 }
 
 export interface UpdateEncarteDTO {
   titulo?: string;
   data_inicio?: string;
-  data_fim?: string;
+  data_fim?: string;  // Adicionar este campo
   ativo?: boolean;
   categoria_id?: number | null;
+  imagens?: string[];  // Adicionar este campo
 }
