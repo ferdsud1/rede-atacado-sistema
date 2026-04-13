@@ -1,5 +1,4 @@
 
-📄 Arquivo: src/routes/encarteRoutes.ts
 import { Router, Request, Response } from "express";
 import { EncarteService } from "../service/EncarteService";
 import { CategoriaService } from "../service/CategoriaService";
