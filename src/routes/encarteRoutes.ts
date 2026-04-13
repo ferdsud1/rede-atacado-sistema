@@ -111,7 +111,7 @@ router.post("/criar", authMiddleware, upload.array("imagem", 20), async (req: Re
 
 router.get("/listar", authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const encartes = awaitservice.buscarTodos();
+        const encartes = await service.buscarTodos();
         res.json(encartes);
     } catch (err: any) {
         console.error("Erro ao listar encartes:", err);
