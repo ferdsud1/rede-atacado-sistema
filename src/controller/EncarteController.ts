@@ -1,7 +1,7 @@
 // src/controller/EncarteController.ts
 import { Request, Response } from 'express';
 import { EncarteService } from '../service/EncarteService';
-import { CreateEncarteDTO, UpdateEncarteDTO } from '../dtos/EncarteDTO';
+import { CreateEncarteDTO, UpdateEncarteDTO } from '../entity/EncarteDTO';
 import { AppError } from '../utils/AppError';
 import { StatusCodes } from 'http-status-codes';
 import { logger } from '../config/logger';
