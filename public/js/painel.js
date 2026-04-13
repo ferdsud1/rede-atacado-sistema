@@ -379,24 +379,31 @@ async function salvarEncarte() {
 
 async function criarEncarte(dados, files) {
     const fd = new FormData();
-    Object.keys(dados).forEach(k => fd.append(k, dados[k]));
-    
+
+    Object.keys(dados).forEach(k => {
+        fd.append(k, dados[k]);
+    });
+
     for (const file of files) {
-        fd.append('imagem', file);
+        fd.append('imagens', file); // ✅ corrigido
     }
-    
-    const res = await fetch('/encartes/criar', {
+
+    const res = await fetch('/encartes/com-imagens', { // ✅ corrigido
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
         body: fd
     });
-    
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.erro || 'Erro ao criar encarte');
-    }
-}
 
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(data.erro || 'Erro ao criar encarte');
+    }
+
+    console.log('✅ Encarte criado:', data);
+}
 async function atualizarEncarteComImagens(id, dados, files) {
     const fd = new FormData();
     Object.keys(dados).forEach(k => fd.append(k, dados[k]));
