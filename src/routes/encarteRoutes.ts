@@ -151,7 +151,7 @@ router.put("/atualizar/:id", authMiddleware, upload.array("imagem", 20), async (
 
         const files = req.files as Express.Multer.File[];
         if (files && files.length > 0) {
-            updateData.imagens = await service.criarComImagens(files);
+         const encarte = await service.criarComImagens(dados, req.files as Express.Multer.File[]);
         }
 
         const encarte = await service.atualizar(id, updateData);
