@@ -1,7 +1,10 @@
+
+📄 Arquivo: src/routes/encarteRoutes.ts
 import { Router, Request, Response } from "express";
 import { EncarteService } from "../service/EncarteService";
 import { CategoriaService } from "../service/CategoriaService";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
+import { CreateEncarteDTO } from "../entity/EncarteDTO";
 import multer from "multer";
 
 const router = Router();
@@ -122,7 +125,8 @@ router.put("/atualizar/:id", authMiddleware, upload.array("imagem", 20), async (
 
         const files = req.files as Express.Multer.File[];
         if (files && files.length > 0) {
-         const encarte = await service.criarComImagens(dados, req.files as Express.Multer.File[]);
+            // Aqui você pode processar as novas imagens se necessário
+            // Por exemplo: updateData.imagens = await processarImagens(files);
         }
 
         const encarte = await service.atualizar(id, updateData);
