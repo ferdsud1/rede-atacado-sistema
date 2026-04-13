@@ -97,7 +97,7 @@ router.post("/criar", authMiddleware, upload.array("imagem", 20), async (req: Re
                 data_inicio,
                 data_fim,
                 ativo: ativo === "true" || ativo === true,
-                categoria_id: finalCategoriaId
+                categoria_id: finalCategoriaId  ?? undefined 
             },
             files
         );
@@ -111,7 +111,7 @@ router.post("/criar", authMiddleware, upload.array("imagem", 20), async (req: Re
 
 router.get("/listar", authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const encartes = await service.listarTodos();
+        const encartes = awaitservice.buscarTodos();
         res.json(encartes);
     } catch (err: any) {
         console.error("Erro ao listar encartes:", err);
@@ -151,7 +151,7 @@ router.put("/atualizar/:id", authMiddleware, upload.array("imagem", 20), async (
 
         const files = req.files as Express.Multer.File[];
         if (files && files.length > 0) {
-            updateData.imagens = await service.salvarImagens(files);
+            updateData.imagens = await service.criarComImagens(files);
         }
 
         const encarte = await service.atualizar(id, updateData);
@@ -167,7 +167,7 @@ router.delete("/excluir/:id", authMiddleware, async (req: AuthRequest, res: Resp
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ erro: "ID inválido" });
 
-        const result = await service.excluir(id);
+        const result = awaitservice.deletar(id);
         res.json(result);
     } catch (err: any) {
         console.error("Erro ao excluir encarte:", err);
@@ -181,7 +181,7 @@ router.post("/alterar-status/:id", authMiddleware, async (req: AuthRequest, res:
         const { ativo } = req.body;
         if (isNaN(id) || ativo === undefined) return res.status(400).json({ erro: "Parâmetros inválidos" });
 
-        const encarte = await service.alterarStatus(id, ativo === true || ativo === "true");
+        const encarte = await service.atualizarStatus(id, ativo === true || ativo === "true");
         res.json(encarte);
     } catch (err: any) {
         console.error("Erro ao alterar status:", err);
