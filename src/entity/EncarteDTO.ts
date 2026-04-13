@@ -49,7 +49,7 @@ export interface EncarteResponseDTO {
   data_fim: string;
   ativo: boolean;
   criado_em: string;
-  categoria_id: number | null;
+  categoria_id: number | null;   // ← OBRIGATÓRIO
   categoria?: {
     id: number;
     nome: string;
