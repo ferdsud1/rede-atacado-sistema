@@ -22,6 +22,7 @@ export interface Encarte {
 export interface CreateEncarteDTO {
   titulo: string;
   imagem_url?: string;
+  imagens?: string[];        // ← ADICIONAR
   data_inicio: string;
   data_fim: string;
   ativo?: boolean;
@@ -31,11 +32,13 @@ export interface CreateEncarteDTO {
 export interface UpdateEncarteDTO {
   titulo?: string;
   imagem_url?: string;
+  imagens?: string[];        // ← ADICIONAR
   data_inicio?: string;
   data_fim?: string;
   ativo?: boolean;
   categoria_id?: number;
 }
+
 
 export interface EncarteResponseDTO {
   id: number;
