@@ -1,292 +1,441 @@
-import { EncarteRepository } from "../repository/EncarteRepository";
-import { CreateEncarteDTO, UpdateEncarteDTO, EncarteResponseDTO, EncarteAtivoDTO } from "../entity/EncarteDTO";
-import { processImage } from "../utils/imageProcessor";
-import { randomUUID } from "crypto";
-import fs from "fs/promises";
-import path from "path";
-
-const repo = new EncarteRepository();
-const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || "./uploads");
-
-// Garantir que o diretório de uploads exista
-const ensureUploadDir = async () => {
-    try {
-        await fs.access(UPLOAD_DIR);
-    } catch {
-        await fs.mkdir(UPLOAD_DIR, { recursive: true });
-    }
-};
+// src/services/EncarteService.ts
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Encarte, CreateEncarteDTO, UpdateEncarteDTO } from '../dtos/EncarteDTO';
+import { AppError } from '../utils/AppError';
+import { StatusCodes } from 'http-status-codes';
 
 export class EncarteService {
+  private supabase: SupabaseClient;
+  private readonly STORAGE_BUCKET = 'encartes';
 
-    // ==========================================
-    // UTILITÁRIOS DE IMAGEM
-    // ==========================================
+  constructor() {
+    this.supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_ANON_KEY!
+    );
+  }
 
-    private async saveImageFile(buffer: Buffer, ext: string): Promise<string> {
-        await ensureUploadDir();
-        
-        const filename = `${randomUUID()}${ext}`;
-        const filepath = path.join(UPLOAD_DIR, filename);
-        
-        await fs.writeFile(filepath, buffer);
-        return `/uploads/${filename}`;
-    }
+  /**
+   * Criar encarte com upload de imagem
+   */
+  async criar(data: CreateEncarteDTO, arquivo?: Express.Multer.File): Promise<Encarte> {
+    try {
+      let imagem_url = null;
 
-    private async deleteImageFile(imagemUrl: string): Promise<void> {
-        try {
-            const filename = imagemUrl.split("/").pop();
-            if (!filename) return;
-            
-            const filepath = path.join(UPLOAD_DIR, filename);
-            await fs.access(filepath);
-            await fs.unlink(filepath);
-        } catch (error: any) {
-            if (error.code !== 'ENOENT') {
-                console.error("Erro ao deletar imagem:", error);
-            }
-        }
-    }
+      // Upload da imagem se existir
+      if (arquivo) {
+        imagem_url = await this.uploadImagem(arquivo, data.titulo);
+      }
 
-    // ==========================================
-    // UPLOAD DE IMAGENS - PÚBLICOS
-    // ==========================================
+      // Inserir no banco
+      const { data: encarte, error } = await this.supabase
+        .from('encartes')
+        .insert({
+          titulo: data.titulo,
+          imagem_url,
+          data_inicio: data.data_inicio,
+          data_fim: data_fim,
+          ativo: data.ativo ?? true,
+          categoria_id: data.categoria_id,
+          criado_em: new Date().toISOString()
+        })
+        .select(`
+          *,
+          categorias (
+            id,
+            nome,
+            cor,
+            icone
+          )
+        `)
+        .single();
 
-    async salvarImagem(file: Express.Multer.File): Promise<string> {
-        const { buffer: optimizedBuffer, ext } = await processImage(file.buffer);
-        return await this.saveImageFile(optimizedBuffer, ext);
-    }
-
-    async salvarImagens(files: Express.Multer.File[]): Promise<string[]> {
-        const promises = files.map(async (file) => {
-            const { buffer: optimizedBuffer, ext } = await processImage(file.buffer);
-            return await this.saveImageFile(optimizedBuffer, ext);
-        });
-        return Promise.all(promises);
-    }
-
-    async salvarImagemBase64(base64String: string): Promise<string> {
-        // Remove prefixo data:image/...;base64, se existir
-        const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, 'base64');
-        
-        const { buffer: optimizedBuffer, ext } = await processImage(buffer);
-        return await this.saveImageFile(optimizedBuffer, ext);
-    }
-
-    async deletarImagem(imagemUrl: string): Promise<void> {
-        await this.deleteImageFile(imagemUrl);
-    }
-
-    async deletarImagens(urls: string[]): Promise<void> {
-        await Promise.all(urls.map(url => this.deleteImageFile(url)));
-    }
-
-    // ==========================================
-    // VALIDAÇÕES
-    // ==========================================
-
-    private validarDatas(dataInicio: Date | string, dataFim: Date | string): void {
-        const dInicio = dataInicio instanceof Date ? dataInicio : new Date(dataInicio);
-        const dFim = dataFim instanceof Date ? dataFim : new Date(dataFim);
-        
-        if (isNaN(dInicio.getTime()) || isNaN(dFim.getTime())) {
-            throw new Error("Datas inválidas");
-        }
-        if (dFim <= dInicio) {
-            throw new Error("Data de término deve ser após a data de início");
-        }
-    }
-
-    private determinarImagemPrincipal(
-        imagemUrl?: string,
-        imagens?: string[]
-    ): string | undefined {
-        if (imagemUrl) return imagemUrl;
-        if (imagens?.length) return imagens[0];
-        return undefined;
-    }
-
-    // ==========================================
-    // CRIAÇÃO
-    // ==========================================
-
-    async criar(data: CreateEncarteDTO): Promise<EncarteResponseDTO> {
-        this.validarDatas(data.data_inicio, data.data_fim);
-
-        const imagemPrincipal = this.determinarImagemPrincipal(
-            data.imagem_url,
-            data.imagens
+      if (error) {
+        throw new AppError(
+          `Erro ao criar encarte: ${error.message}`,
+          StatusCodes.INTERNAL_SERVER_ERROR
         );
+      }
 
-        return await repo.criar({
-            titulo: data.titulo,
-            imagem_url: imagemPrincipal,
-            imagens: data.imagens?.length ? data.imagens : undefined,
-            data_inicio: data.data_inicio instanceof Date 
-                ? data.data_inicio 
-                : new Date(data.data_inicio),
-            data_fim: data.data_fim instanceof Date 
-                ? data.data_fim 
-                : new Date(data.data_fim),
-            ativo: data.ativo ?? true,
-            categoria_id: data.categoria_id ?? null
+      return encarte;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        'Erro ao criar encarte',
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        undefined,
+        error
+      );
+    }
+  }
+
+  /**
+   * Buscar todos os encartes
+   */
+  async buscarTodos(filtros?: {
+    ativo?: boolean;
+    categoria_id?: number;
+    limite?: number;
+    pagina?: number;
+  }): Promise<{ data: Encarte[]; total: number }> {
+    try {
+      const { pagina = 1, limite = 10, ativo, categoria_id } = filtros || {};
+      const inicio = (pagina - 1) * limite;
+      const fim = inicio + limite - 1;
+
+      let query = this.supabase
+        .from('encartes')
+        .select(`
+          *,
+          categorias (
+            id,
+            nome,
+            cor,
+            icone
+          )
+        `, { count: 'exact' });
+
+      // Aplicar filtros
+      if (ativo !== undefined) {
+        query = query.eq('ativo', ativo);
+      }
+
+      if (categoria_id) {
+        query = query.eq('categoria_id', categoria_id);
+      }
+
+      // Ordenar por data de criação (mais recentes primeiro)
+      query = query.order('criado_em', { ascending: false });
+
+      // Paginação
+      const { data, error, count } = await query.range(inicio, fim);
+
+      if (error) {
+        throw new AppError(
+          `Erro ao buscar encartes: ${error.message}`,
+          StatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+
+      return {
+        data: data || [],
+        total: count || 0
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        'Erro ao buscar encartes',
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        undefined,
+        error
+      );
+    }
+  }
+
+  /**
+   * Buscar encarte por ID
+   */
+  async buscarPorId(id: number): Promise<Encarte> {
+    try {
+      const { data, error } = await this.supabase
+        .from('encartes')
+        .select(`
+          *,
+          categorias (
+            id,
+            nome,
+            descricao,
+            cor,
+            icone
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        throw new AppError(
+          `Erro ao buscar encarte: ${error.message}`,
+          StatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+
+      if (!data) {
+        throw new AppError(
+          'Encarte não encontrado',
+          StatusCodes.NOT_FOUND
+        );
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        'Erro ao buscar encarte',
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        undefined,
+        error
+      );
+    }
+  }
+
+  /**
+   * Atualizar encarte
+   */
+  async atualizar(
+    id: number,
+    data: UpdateEncarteDTO,
+    arquivo?: Express.Multer.File
+  ): Promise<Encarte> {
+    try {
+      // Verificar se existe
+      const encarteExistente = await this.buscarPorId(id);
+
+      let imagem_url = encarteExistente.imagem_url;
+
+      // Upload de nova imagem se existir
+      if (arquivo) {
+        // Deletar imagem antiga se existir
+        if (encarteExistente.imagem_url) {
+          await this.deletarImagem(encarteExistente.imagem_url);
+        }
+        imagem_url = await this.uploadImagem(arquivo, data.titulo || encarteExistente.titulo);
+      }
+
+      const updateData: any = {
+        titulo: data.titulo,
+        data_inicio: data.data_inicio,
+        data_fim: data.data_fim,
+        ativo: data.ativo,
+        categoria_id: data.categoria_id
+      };
+
+      // Só atualizar imagem_url se mudou
+      if (imagem_url !== encarteExistente.imagem_url) {
+        updateData.imagem_url = imagem_url;
+      }
+
+      const { data: encarte, error } = await this.supabase
+        .from('encartes')
+        .update(updateData)
+        .eq('id', id)
+        .select(`
+          *,
+          categorias (
+            id,
+            nome,
+            cor,
+            icone
+          )
+        `)
+        .single();
+
+      if (error) {
+        throw new AppError(
+          `Erro ao atualizar encarte: ${error.message}`,
+          StatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+
+      return encarte;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        'Erro ao atualizar encarte',
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        undefined,
+        error
+      );
+    }
+  }
+
+  /**
+   * Deletar encarte
+   */
+  async deletar(id: number): Promise<void> {
+    try {
+      // Buscar encarte para deletar imagem
+      const encarte = await this.buscarPorId(id);
+
+      // Deletar imagem do storage
+      if (encarte.imagem_url) {
+        await this.deletarImagem(encarte.imagem_url);
+      }
+
+      // Deletar do banco
+      const { error } = await this.supabase
+        .from('encartes')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw new AppError(
+          `Erro ao deletar encarte: ${error.message}`,
+          StatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        'Erro ao deletar encarte',
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        undefined,
+        error
+      );
+    }
+  }
+
+  /**
+   * Atualizar status (ativo/inativo)
+   */
+  async atualizarStatus(id: number, ativo: boolean): Promise<Encarte> {
+    try {
+      const { data, error } = await this.supabase
+        .from('encartes')
+        .update({ ativo })
+        .eq('id', id)
+        .select(`
+          *,
+          categorias (
+            id,
+            nome,
+            cor,
+            icone
+          )
+        `)
+        .single();
+
+      if (error) {
+        throw new AppError(
+          `Erro ao atualizar status: ${error.message}`,
+          StatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+
+      if (!data) {
+        throw new AppError('Encarte não encontrado', StatusCodes.NOT_FOUND);
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        'Erro ao atualizar status',
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        undefined,
+        error
+      );
+    }
+  }
+
+  /**
+   * Buscar encartes ativos
+   */
+  async buscarAtivos(categoria_id?: number): Promise<Encarte[]> {
+    try {
+      let query = this.supabase
+        .from('encartes')
+        .select(`
+          *,
+          categorias (
+            id,
+            nome,
+            cor,
+            icone
+          )
+        `)
+        .eq('ativo', true)
+        .lte('data_inicio', new Date().toISOString())
+        .gte('data_fim', new Date().toISOString())
+        .order('data_inicio', { ascending: false });
+
+      if (categoria_id) {
+        query = query.eq('categoria_id', categoria_id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new AppError(
+          `Erro ao buscar encartes ativos: ${error.message}`,
+          StatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+
+      return data || [];
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        'Erro ao buscar encartes ativos',
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        undefined,
+        error
+      );
+    }
+  }
+
+  /**
+   * Upload de imagem para Supabase Storage
+   */
+  private async uploadImagem(arquivo: Express.Multer.File, titulo: string): Promise<string> {
+    try {
+      const timestamp = Date.now();
+      const nomeArquivo = `${timestamp}-${titulo
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9]/g, '-')
+        .toLowerCase()}-${arquivo.originalname}`;
+
+      const { data, error } = await this.supabase
+        .storage
+        .from(this.STORAGE_BUCKET)
+        .upload(nomeArquivo, arquivo.buffer, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: arquivo.mimetype
         });
+
+      if (error) {
+        throw new AppError(
+          `Erro ao fazer upload da imagem: ${error.message}`,
+          StatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+
+      // Obter URL pública
+      const { data: { publicUrl } } = this.supabase
+        .storage
+        .from(this.STORAGE_BUCKET)
+        .getPublicUrl(data.path);
+
+      return publicUrl;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        'Erro ao fazer upload da imagem',
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        undefined,
+        error
+      );
     }
+  }
 
-    async criarComImagens(
-        data: Omit<CreateEncarteDTO, "imagem_url" | "imagens">,
-        files: Express.Multer.File[]
-    ): Promise<EncarteResponseDTO> {
-        if (!files?.length) {
-            throw new Error("Pelo menos uma imagem é obrigatória");
-        }
-        
-        const imagens = await this.salvarImagens(files);
-        return await this.criar({ ...data, imagens });
+  /**
+   * Deletar imagem do storage
+   */
+  private async deletarImagem(imagemUrl: string): Promise<void> {
+    try {
+      // Extrair caminho do arquivo da URL
+      const caminho = imagemUrl.split('/').pop();
+      
+      if (caminho) {
+        await this.supabase
+          .storage
+          .from(this.STORAGE_BUCKET)
+          .remove([caminho]);
+      }
+    } catch (error) {
+      console.error('Erro ao deletar imagem:', error);
+      // Não lançar erro para não falhar a operação principal
     }
-
-    async criarComImagem(
-        data: Omit<CreateEncarteDTO, "imagem_url">,
-        file: Express.Multer.File
-    ): Promise<EncarteResponseDTO> {
-        const imagem_url = await this.salvarImagem(file);
-        return await this.criar({ ...data, imagem_url });
-    }
-
-    async criarComBase64(
-        data: Omit<CreateEncarteDTO, 'imagem_base64'>,
-        base64String: string
-    ): Promise<EncarteResponseDTO> {
-        if (!base64String) {
-            throw new Error("String base64 da imagem é obrigatória");
-        }
-        
-        const imagem_url = await this.salvarImagemBase64(base64String);
-        return await this.criar({ ...data, imagem_url });
-    }
-
-    // ==========================================
-    // LEITURA
-    // ==========================================
-
-    async listarAtivos(): Promise<EncarteAtivoDTO[]> {
-        await this.desativarExpirados();
-        return await repo.listarAtivos();
-    }
-
-    async listarTodos(): Promise<EncarteResponseDTO[]> {
-        return await repo.listarTodos();
-    }
-
-    async buscarPorId(id: number): Promise<EncarteResponseDTO | null> {
-        return await repo.buscarPorId(id);
-    }
-
-    async listarFuturos(): Promise<EncarteResponseDTO[]> {
-        return await repo.listarFuturos();
-    }
-
-    // ==========================================
-    // ATUALIZAÇÃO
-    // ==========================================
-
-    async atualizar(id: number, data: UpdateEncarteDTO): Promise<EncarteResponseDTO> {
-        const existente = await repo.buscarPorId(id);
-        if (!existente) {
-            throw new Error("Encarte não encontrado");
-        }
-
-        // Validar datas se estiverem sendo atualizadas
-        if (data.data_inicio && data.data_fim) {
-            this.validarDatas(data.data_inicio, data.data_fim);
-        }
-
-        // Deletar imagens antigas se estiverem sendo substituídas
-        if (data.imagens !== undefined || data.imagem_url !== undefined) {
-            await this.limparImagensAntigas(existente);
-        }
-
-        const atualizado = await repo.atualizar(id, data);
-        if (!atualizado) {
-            throw new Error("Falha ao atualizar encarte");
-        }
-        
-        return atualizado;
-    }
-
-    private async limparImagensAntigas(encarte: EncarteResponseDTO): Promise<void> {
-        const e = encarte as any;
-        
-        if (e.imagens?.length) {
-            await this.deletarImagens(e.imagens);
-        } else if (e.imagem_url) {
-            await this.deletarImagem(e.imagem_url);
-        }
-    }
-
-    async atualizarComImagens(
-        id: number,
-        data: Partial<Omit<UpdateEncarteDTO, "imagem_url" | "imagens">>,
-        files: Express.Multer.File[]
-    ): Promise<EncarteResponseDTO> {
-        if (!files?.length) {
-            throw new Error("Pelo menos uma imagem é obrigatória");
-        }
-        
-        await this.limparImagensAntigas(await this.buscarPorId(id) as EncarteResponseDTO);
-        
-        const imagens = await this.salvarImagens(files);
-        return await this.atualizar(id, { ...data, imagens });
-    }
-
-    async atualizarComImagem(
-        id: number,
-        data: Partial<Omit<UpdateEncarteDTO, "imagem_url">>,
-        file: Express.Multer.File
-    ): Promise<EncarteResponseDTO> {
-        await this.limparImagensAntigas(await this.buscarPorId(id) as EncarteResponseDTO);
-        
-        const imagem_url = await this.salvarImagem(file);
-        return await this.atualizar(id, { ...data, imagem_url });
-    }
-
-    async atualizarComBase64(
-        id: number,
-        data: Partial<Omit<UpdateEncarteDTO, "imagem_base64">>,
-        base64String: string
-    ): Promise<EncarteResponseDTO> {
-        await this.limparImagensAntigas(await this.buscarPorId(id) as EncarteResponseDTO);
-        
-        const imagem_url = await this.salvarImagemBase64(base64String);
-        return await this.atualizar(id, { ...data, imagem_url });
-    }
-
-    // ==========================================
-    // EXCLUSÃO
-    // ==========================================
-
-    async excluir(id: number): Promise<{ mensagem: string }> {
-        const encarte = await repo.buscarPorId(id);
-        if (!encarte) {
-            throw new Error("Encarte não encontrado");
-        }
-
-        await this.limparImagensAntigas(encarte);
-        await repo.excluir(id);
-        
-        return { mensagem: "Encarte excluído com sucesso!" };
-    }
-
-    // ==========================================
-    // UTILITÁRIOS
-    // ==========================================
-
-    async alterarStatus(id: number, ativo: boolean): Promise<EncarteResponseDTO> {
-        return await this.atualizar(id, { ativo });
-    }
-
-    async desativarExpirados(): Promise<number> {
-        return await repo.desativarExpirados();
-    }
+  }
 }
