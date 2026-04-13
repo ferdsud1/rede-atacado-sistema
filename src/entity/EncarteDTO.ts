@@ -11,7 +11,7 @@ export interface Encarte {
     criado_em?: Date;
 }
 
-export class CreateEncarteDTO {
+export interface CreateEncarteDTO {
     titulo: string;
     descricao?: string;
     data_inicio: Date;
