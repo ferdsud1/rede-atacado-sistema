@@ -1,29 +1,23 @@
-// src/config/upload.ts
-import multer, { FileFilterCallback } from 'multer';
+// src/middleware/upload.ts
+import multer from 'multer';
 import { Request } from 'express';
-import { join } from 'path';
 
 const storage = multer.memoryStorage();
 
-const fileFilter = (
-    req: Request,
-    file: Express.Multer.File,
-    cb: (error: Error | null, acceptFile: boolean) => void  // ✅ Tipo correto
-) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    
-    if (allowed.includes(file.mimetype)) {
-        cb(null, true);  // ✅ null primeiro, depois boolean
-    } else {
-        cb(new Error('Formato não permitido. Use JPEG, PNG ou WebP.'), false);
-    }
+const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Formato de arquivo inválido. Use JPEG, PNG ou WEBP.'));
+  }
 };
 
 export const upload = multer({
-    storage,
-    limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB
-        files: 1
-    },
-    fileFilter
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
 });
