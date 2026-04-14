@@ -3,15 +3,18 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
+const smtpConfig = {
     host: process.env.EMAIL_HOST,
     port: Number(process.env.EMAIL_PORT),
     secure: false, // false para porta 587
+    family: 4, // Forçar IPv4 para evitar erro ENETUNREACH em IPv6
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
     },
-});
+};
+
+const transporter = nodemailer.createTransport(smtpConfig);
 
 // Verifica conexão ao iniciar
 transporter.verify().then(() => console.log("✅ Servidor de email conectado")).catch(console.error);
