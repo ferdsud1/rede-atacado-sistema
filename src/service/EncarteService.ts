@@ -1,4 +1,4 @@
-// src/services/EncarteService.ts
+// src/service/EncarteService.ts
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Encarte, CreateEncarteDTO, UpdateEncarteDTO } from '../entity/EncarteDTO';
 import { AppError } from '../utils/AppError';
@@ -36,7 +36,7 @@ export class EncarteService {
         })
         .select(`
           *,
-          categorias (
+          categorias!left (
             id,
             nome,
             cor,
@@ -64,72 +64,70 @@ export class EncarteService {
     }
   }
 
-async buscarTodos(filtros?: {
-  ativo?: boolean;
-  categoria_id?: number;
-  limite?: number;
-  pagina?: number;
-}): Promise<{  Encarte[]; total: number }> {
-  try {
-    const { pagina = 1, limite = 100, ativo, categoria_id } = filtros || {};
-    const inicio = (pagina - 1) * limite;
-    const fim = inicio + limite - 1;
+  async buscarTodos(filtros?: {
+    ativo?: boolean;
+    categoria_id?: number;
+    limite?: number;
+    pagina?: number;
+  }): Promise<{  Encarte[]; total: number }> {
+    try {
+      const { pagina = 1, limite = 100, ativo, categoria_id } = filtros || {};
+      const inicio = (pagina - 1) * limite;
+      const fim = inicio + limite - 1;
 
-    // ✅ CORREÇÃO: JOIN correto com categorias
-    let query = this.supabase
-      .from('encartes')
-      .select(`
-        *,
-        categorias!left (
-          id,
-          nome,
-          cor,
-          icone
-        )
-      `, { count: 'exact' });
+      let query = this.supabase
+        .from('encartes')
+        .select(`
+          *,
+          categorias!left (
+            id,
+            nome,
+            cor,
+            icone
+          )
+        `, { count: 'exact' });
 
-    if (ativo !== undefined) {
-      query = query.eq('ativo', ativo);
-    }
+      if (ativo !== undefined) {
+        query = query.eq('ativo', ativo);
+      }
 
-    if (categoria_id) {
-      query = query.eq('categoria_id', categoria_id);
-    }
+      if (categoria_id) {
+        query = query.eq('categoria_id', categoria_id);
+      }
 
-    query = query.order('criado_em', { ascending: false });
+      query = query.order('criado_em', { ascending: false });
 
-    const { data, error, count } = await query.range(inicio, fim);
+      const { data, error, count } = await query.range(inicio, fim);
 
-    if (error) {
-      console.error('❌ Erro no buscarTodos:', error);
+      if (error) {
+        throw new AppError(
+          `Erro ao buscar encartes: ${error.message}`,
+          StatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+
+      return {
+         data || [],
+        total: count || 0
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
       throw new AppError(
-        `Erro ao buscar encartes: ${error.message}`,
-        StatusCodes.INTERNAL_SERVER_ERROR
+        'Erro ao buscar encartes',
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        undefined,
+        error
       );
     }
-
-    console.log(`✅ BuscarTodos: ${data?.length || 0} encartes encontrados`);
-    return {
-       data || [],
-      total: count || 0
-    };
-  } catch (error) {
-    if (error instanceof AppError) throw error;
-    throw new AppError(
-      'Erro ao buscar encartes',
-      StatusCodes.INTERNAL_SERVER_ERROR,
-      undefined,
-      error
-    );
   }
-}
+
   async buscarPorId(id: number): Promise<Encarte> {
     try {
       const { data, error } = await this.supabase
         .from('encartes')
         .select(`
           *,
-          categorias (
+          categorias!left (
             id,
             nome,
             descricao,
@@ -166,11 +164,10 @@ async buscarTodos(filtros?: {
     }
   }
 
-  // ✅ CORREÇÃO: Método atualizar agora aceita array de arquivos
   async atualizar(
     id: number,
     data: UpdateEncarteDTO,
-    arquivos?: Express.Multer.File[]  // ✅ MUDANÇA: de 'arquivo?' para 'arquivos?'
+    arquivos?: Express.Multer.File[]
   ): Promise<Encarte> {
     try {
       const encarteExistente = await this.buscarPorId(id);
@@ -178,9 +175,7 @@ async buscarTodos(filtros?: {
       let imagem_url = encarteExistente.imagem_url;
       let imagens = encarteExistente.imagens || [];
 
-      // ✅ Se houver novos arquivos, faz upload de todos
       if (arquivos && arquivos.length > 0) {
-        // Deleta imagens antigas
         if (encarteExistente.imagem_url) {
           await this.deletarImagem(encarteExistente.imagem_url);
         }
@@ -190,7 +185,6 @@ async buscarTodos(filtros?: {
           }
         }
 
-        // Upload das novas imagens
         const imagemUrls: string[] = [];
         for (const arquivo of arquivos) {
           const url = await this.uploadImagem(arquivo, data.titulo || encarteExistente.titulo);
@@ -209,7 +203,6 @@ async buscarTodos(filtros?: {
         categoria_id: data.categoria_id
       };
 
-      // Atualiza URLs de imagem se mudou
       if (imagem_url !== encarteExistente.imagem_url) {
         updateData.imagem_url = imagem_url;
       }
@@ -217,13 +210,13 @@ async buscarTodos(filtros?: {
         updateData.imagens = imagens;
       }
 
-      const { data: encarte, error } = await this.supabase
+      const {  encarte, error } = await this.supabase
         .from('encartes')
         .update(updateData)
         .eq('id', id)
         .select(`
           *,
-          categorias (
+          categorias!left (
             id,
             nome,
             cor,
@@ -294,7 +287,7 @@ async buscarTodos(filtros?: {
         .eq('id', id)
         .select(`
           *,
-          categorias (
+          categorias!left (
             id,
             nome,
             cor,
@@ -332,7 +325,7 @@ async buscarTodos(filtros?: {
         .from('encartes')
         .select(`
           *,
-          categorias (
+          categorias!left (
             id,
             nome,
             cor,
@@ -375,7 +368,7 @@ async buscarTodos(filtros?: {
         .from('encartes')
         .select(`
           *,
-          categorias (
+          categorias!left (
             id,
             nome,
             cor,
@@ -405,64 +398,64 @@ async buscarTodos(filtros?: {
     }
   }
 
- async criarComImagens(data: CreateEncarteDTO, arquivos: Express.Multer.File[]): Promise<Encarte> {
-  try {
-    console.log('📥 Criando encarte:', data);
-    
-    const imagemUrls: string[] = [];
+  async criarComImagens(data: CreateEncarteDTO, arquivos: Express.Multer.File[]): Promise<Encarte> {
+    try {
+      console.log('📥 Criando encarte:', data);
+      
+      const imagemUrls: string[] = [];
 
-    for (const arquivo of arquivos) {
-      const url = await this.uploadImagem(arquivo, data.titulo);
-      imagemUrls.push(url);
-    }
+      for (const arquivo of arquivos) {
+        const url = await this.uploadImagem(arquivo, data.titulo);
+        imagemUrls.push(url);
+      }
 
-    const insertData: any = {
-      titulo: data.titulo,
-      imagem_url: imagemUrls[0] || null,
-      data_inicio: data.data_inicio,
-      data_fim: data.data_fim,
-      ativo: data.ativo ?? true,
-      categoria_id: data.categoria_id || null,  // ✅ Garante que categoria_id seja salvo
-      imagens: imagemUrls,
-      criado_em: new Date().toISOString()
-    };
+      const insertData: any = {
+        titulo: data.titulo,
+        imagem_url: imagemUrls[0] || null,
+        data_inicio: data.data_inicio,
+        data_fim: data.data_fim,
+        ativo: data.ativo ?? true,
+        categoria_id: data.categoria_id || null,
+        imagens: imagemUrls,
+        criado_em: new Date().toISOString()
+      };
 
-    console.log('📤 Dados para insert:', insertData);
+      console.log('📤 Dados para insert:', insertData);
 
-    const {  encarte, error } = await this.supabase
-      .from('encartes')
-      .insert(insertData)
-      .select(`
-        *,
-        categorias!left (
-          id,
-          nome,
-          cor,
-          icone
-        )
-      `)
-      .single();
+      const {  encarte, error } = await this.supabase
+        .from('encartes')
+        .insert(insertData)
+        .select(`
+          *,
+          categorias!left (
+            id,
+            nome,
+            cor,
+            icone
+          )
+        `)
+        .single();
 
-    if (error) {
-      console.error('❌ Erro ao criar:', error);
+      if (error) {
+        console.error('❌ Erro ao criar:', error);
+        throw new AppError(
+          `Erro ao criar encarte: ${error.message}`,
+          StatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+
+      console.log('✅ Encarte criado:', encarte);
+      return encarte;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
       throw new AppError(
-        `Erro ao criar encarte: ${error.message}`,
-        StatusCodes.INTERNAL_SERVER_ERROR
+        'Erro ao criar encarte com imagens',
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        undefined,
+        error
       );
     }
-
-    console.log('✅ Encarte criado:', encarte);
-    return encarte;
-  } catch (error) {
-    if (error instanceof AppError) throw error;
-    throw new AppError(
-      'Erro ao criar encarte com imagens',
-      StatusCodes.INTERNAL_SERVER_ERROR,
-      undefined,
-      error
-    );
   }
-}
 
   private async uploadImagem(arquivo: Express.Multer.File, titulo: string): Promise<string> {
     const nomeArquivo = `${Date.now()}-${titulo.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
