@@ -154,43 +154,43 @@ async function carregarEncartes() {
             return;
         }
         
-        tbody.innerHTML = encartes.map(e => {
-            const primeiraImagem = Array.isArray(e.imagens) ? e.imagens[0] : e.imagem_url || e.imagens;
-            const imgSrc = getImagemUrl(primeiraImagem);
-            
-            // ✅ CORREÇÃO: Acessar categoria corretamente (do JOIN)
-            const categoriaNome = e.categoria?.nome || e.categoria_nome || 'Sem categoria';
-            const categoriaCor = e.categoria?.cor || e.categoria_cor || '#ff6600';
-            const categoriaIcone = e.categoria?.icone || e.categoria_icone || '🏷️';
-            
-            const totalPaginas = Array.isArray(e.imagens) ? e.imagens.length : 1;
-            
-            return `
-                <tr>
-                    <td style="position:relative">
-                        <img src="${imgSrc}" alt="${e.titulo || ''}" style="width:50px;height:50px;object-fit:cover;border-radius:6px" onerror="handleImageError(this)">
-                        ${totalPaginas > 1 ? `<span style="position:absolute;top:2px;right:2px;background:#ff6600;color:white;font-size:9px;padding:2px 5px;border-radius:3px;font-weight:bold">${totalPaginas}p</span>` : ''}
-                    </td>
-                    <td><strong>${e.titulo || 'Sem título'}</strong></td>
-                    <td>
-                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:${categoriaCor}20;color:${categoriaCor};border-radius:4px;font-size:12px">
-                            ${categoriaIcone} ${categoriaNome}
-                        </span>
-                    </td>
-                    <td>${formatarData(e.data_inicio)} até ${formatarData(e.data_fim)}</td>
-                    <td>
-                        <button class="btn-icon btn-edit" onclick="editarEncarte(${e.id})" title="Editar"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon btn-delete" onclick="excluirEncarte(${e.id})" title="Excluir"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-        
-    } catch (err) {
-        console.error('❌ Erro ao carregar encartes:', err);
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="color:#dc3545;padding:20px">Erro: ${err.message}</td></tr>`;
-    }
-}
+    tbody.innerHTML = encartes.map(e => {
+    const primeiraImagem = Array.isArray(e.imagens) ? e.imagens[0] : e.imagem_url || e.imagens;
+    const imgSrc = getImagemUrl(primeiraImagem);
+    
+    // ✅ CORREÇÃO: Verificar múltiplos formatos de categoria
+    console.log('Encarte:', e.id, 'Categoria:', e.categoria, 'Categoria ID:', e.categoria_id);
+    
+    const categoria = e.categoria || e.categorias;  // Supabase pode retornar no singular ou plural
+    const categoriaNome = categoria?.nome || e.categoria_nome || 'Sem categoria';
+    const categoriaCor = categoria?.cor || e.categoria_cor || '#ff6600';
+    const categoriaIcone = categoria?.icone || e.categoria_icone || '🏷️';
+    
+    const totalPaginas = Array.isArray(e.imagens) ? e.imagens.length : 1;
+    
+    return `
+        <tr>
+            <td style="position:relative">
+                <img src="${imgSrc}" alt="${e.titulo || ''}" style="width:50px;height:50px;object-fit:cover;border-radius:6px" onerror="handleImageError(this)">
+                ${totalPaginas > 1 ? `<span style="position:absolute;top:2px;right:2px;background:#ff6600;color:white;font-size:9px;padding:2px 5px;border-radius:3px;font-weight:bold">${totalPaginas}p</span>` : ''}
+            </td>
+            <td><strong>${e.titulo || 'Sem título'}</strong></td>
+            <td>
+                ${categoriaNome !== 'Sem categoria' 
+                    ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:${categoriaCor}20;color:${categoriaCor};border-radius:4px;font-size:12px">
+                        ${categoriaIcone} ${categoriaNome}
+                       </span>`
+                    : `<span style="color:#999;font-size:12px">Sem categoria</span>`
+                }
+            </td>
+            <td>${formatarData(e.data_inicio)} até ${formatarData(e.data_fim)}</td>
+            <td>
+                <button class="btn-icon btn-edit" onclick="editarEncarte(${e.id})" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="btn-icon btn-delete" onclick="excluirEncarte(${e.id})" title="Excluir"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+    `;
+}).join('');
 
 /**
  * ✅ BUG 2 CORRIGIDO: criarEncarte com console.log para debug de erro 400
