@@ -58,7 +58,7 @@ router.get("/futuros", async (req: Request, res: Response) => {
 // ROTAS PROTEGIDAS (Admin)
 // ============================================================================
 
-// ✅ CRIAÇÃO COM IMAGENS - Field name: 'imagens' (plural)
+// ✅ CRIAÇÃO COM IMAGENS - CORRIGIDO TIPO
 router.post('/com-imagens', authMiddleware, upload.array('imagens', 20), async (req: AuthRequest, res: Response) => {
     try {
         const dados: CreateEncarteDTO = {
@@ -80,11 +80,14 @@ router.post('/com-imagens', authMiddleware, upload.array('imagens', 20), async (
             return res.status(400).json({ erro: 'Data final deve ser posterior à data inicial' });
         }
 
+        // ✅ CORREÇÃO: Tipagem correta do multer
         const files = req.files as Express.Multer.File[];
+        
         if (!files || files.length === 0) {
             return res.status(400).json({ erro: 'Pelo menos uma imagem é obrigatória' });
         }
 
+        // ✅ CORREÇÃO: Passando array de arquivos corretamente
         const encarte = await service.criarComImagens(dados, files);
         return res.status(201).json({ 
             sucesso: true, 
@@ -124,7 +127,7 @@ router.get("/buscar/:id", authMiddleware, async (req: AuthRequest, res: Response
     }
 });
 
-// ✅ ATUALIZAR - Field name: 'imagem' (singular)
+// ✅ ATUALIZAR - CORRIGIDO TIPO
 router.put("/atualizar/:id", authMiddleware, upload.array("imagem", 20), async (req: AuthRequest, res: Response) => {
     try {
         const id = parseInt(req.params.id);
@@ -139,7 +142,9 @@ router.put("/atualizar/:id", authMiddleware, upload.array("imagem", 20), async (
             categoria_id: (categoria_id !== undefined && categoria_id !== "") ? parseInt(categoria_id) : undefined
         };
 
+        // ✅ CORREÇÃO: Tipagem correta do multer
         const files = req.files as Express.Multer.File[];
+        
         const encarte = await service.atualizar(id, updateData, files);
         res.json(encarte);
     } catch (err: any) {
