@@ -123,14 +123,18 @@ async function carregarEncartes() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
+        console.log('📡 Resposta da API:', res.status);
+        
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
+            console.error('❌ Erro na resposta:', err);
             throw new Error(err.erro || `Erro ${res.status}`);
         }
         
-        // ✅ CORREÇÃO: usa "res" ao invés de "response"
         const data = await res.json();
-        const encartes = Array.isArray(data) ? data : [];
+        console.log('✅ Dados recebidos:', data);
+        
+        const encartes = Array.isArray(data) ? data : (data.dados || []);
         
         if (!encartes || encartes.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:40px;color:#999">Nenhum encarte cadastrado</td></tr>';
@@ -140,7 +144,9 @@ async function carregarEncartes() {
         tbody.innerHTML = encartes.map(e => {
             const primeiraImagem = Array.isArray(e.imagens) ? e.imagens[0] : e.imagem_url || e.imagens;
             const imgSrc = getImagemUrl(primeiraImagem);
-            const categoriaNome = e.categoria_nome || 'Sem categoria';
+            const categoriaNome = e.categoria?.nome || e.categoria_nome || 'Sem categoria';
+            const categoriaCor = e.categoria?.cor || e.categoria_cor || '#ff6600';
+            const categoriaIcone = e.categoria?.icone || e.categoria_icone || '🏷️';
             const totalPaginas = Array.isArray(e.imagens) ? e.imagens.length : 1;
             
             return `
@@ -150,7 +156,11 @@ async function carregarEncartes() {
                         ${totalPaginas > 1 ? `<span style="position:absolute;top:2px;right:2px;background:#ff6600;color:white;font-size:9px;padding:2px 5px;border-radius:3px;font-weight:bold">${totalPaginas}p</span>` : ''}
                     </td>
                     <td><strong>${e.titulo || 'Sem título'}</strong></td>
-                    <td>${categoriaNome}</td>
+                    <td>
+                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:${categoriaCor}20;color:${categoriaCor};border-radius:4px;font-size:12px">
+                            ${categoriaIcone} ${categoriaNome}
+                        </span>
+                    </td>
                     <td>${formatarData(e.data_inicio)} até ${formatarData(e.data_fim)}</td>
                     <td>
                         <button class="btn-icon btn-edit" onclick="editarEncarte(${e.id})" title="Editar"><i class="fas fa-edit"></i></button>
@@ -165,7 +175,6 @@ async function carregarEncartes() {
         tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="color:#dc3545;padding:20px">Erro: ${err.message}</td></tr>`;
     }
 }
-
 /**
  * ✅ BUG 2 CORRIGIDO: criarEncarte com console.log para debug de erro 400
  */
