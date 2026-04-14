@@ -4,7 +4,7 @@ import { createAdminSchema, loginSchema } from "../utils/validations";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as crypto from "crypto";
-import { enviarEmailRecuperacao } from "../utils/email";
+import { enviarEmailRecuperacao, classificarErroEmail } from "../utils/email";
 
 const repo = new AdminRepository();
 
@@ -122,8 +122,9 @@ export class AdminService {
         try {
             await enviarEmailRecuperacao(email, token);
         } catch (error) {
-            console.error("Erro ao enviar email:", error);
-            // Falha no email não deve quebrar o fluxo, mas logamos
+            const mensagemErro = classificarErroEmail(error);
+            console.error(`Erro ao enviar email de recuperação: ${mensagemErro}`, error);
+            // Falha no email não deve quebrar o fluxo, mas logamos com detalhes
         }
 
         return { mensagem: msgSegura };
