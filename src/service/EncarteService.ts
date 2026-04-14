@@ -29,7 +29,7 @@ export class EncarteService {
           titulo: data.titulo,
           imagem_url,
           data_inicio: data.data_inicio,
-          data_fim: data.data_fim,  // Corrigido
+          data_fim: data.data_fim,
           ativo: data.ativo ?? true,
           categoria_id: data.categoria_id,
           criado_em: new Date().toISOString()
@@ -164,33 +164,55 @@ export class EncarteService {
     }
   }
 
+  // ✅ CORREÇÃO: Método atualizar agora aceita array de arquivos
   async atualizar(
     id: number,
     data: UpdateEncarteDTO,
-    arquivo?: Express.Multer.File
+    arquivos?: Express.Multer.File[]  // ✅ MUDANÇA: de 'arquivo?' para 'arquivos?'
   ): Promise<Encarte> {
     try {
       const encarteExistente = await this.buscarPorId(id);
 
       let imagem_url = encarteExistente.imagem_url;
+      let imagens = encarteExistente.imagens || [];
 
-      if (arquivo) {
+      // ✅ Se houver novos arquivos, faz upload de todos
+      if (arquivos && arquivos.length > 0) {
+        // Deleta imagens antigas
         if (encarteExistente.imagem_url) {
           await this.deletarImagem(encarteExistente.imagem_url);
         }
-        imagem_url = await this.uploadImagem(arquivo, data.titulo || encarteExistente.titulo);
+        if (imagens.length > 0) {
+          for (const img of imagens) {
+            await this.deletarImagem(img);
+          }
+        }
+
+        // Upload das novas imagens
+        const imagemUrls: string[] = [];
+        for (const arquivo of arquivos) {
+          const url = await this.uploadImagem(arquivo, data.titulo || encarteExistente.titulo);
+          imagemUrls.push(url);
+        }
+
+        imagem_url = imagemUrls[0] || null;
+        imagens = imagemUrls;
       }
 
       const updateData: any = {
         titulo: data.titulo,
         data_inicio: data.data_inicio,
-        data_fim: data.data_fim,  // Corrigido
+        data_fim: data.data_fim,
         ativo: data.ativo,
         categoria_id: data.categoria_id
       };
 
+      // Atualiza URLs de imagem se mudou
       if (imagem_url !== encarteExistente.imagem_url) {
         updateData.imagem_url = imagem_url;
+      }
+      if (imagens.length > 0) {
+        updateData.imagens = imagens;
       }
 
       const { data: encarte, error } = await this.supabase
@@ -233,6 +255,11 @@ export class EncarteService {
 
       if (encarte.imagem_url) {
         await this.deletarImagem(encarte.imagem_url);
+      }
+      if (encarte.imagens && encarte.imagens.length > 0) {
+        for (const img of encarte.imagens) {
+          await this.deletarImagem(img);
+        }
       }
 
       const { error } = await this.supabase
@@ -297,7 +324,6 @@ export class EncarteService {
     }
   }
 
-  // Métodos adicionais que estão faltando
   async listarAtivos(categoria_id?: number): Promise<Encarte[]> {
     try {
       let query = this.supabase
