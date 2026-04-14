@@ -13,6 +13,7 @@ export class EncarteController {
     this.service = new EncarteService();
   }
 
+  // ✅ CRIAR COM MÚLTIPLAS IMAGENS
   criar = async (req: Request, res: Response): Promise<Response> => {
     try {
       const dados: CreateEncarteDTO = {
@@ -32,9 +33,15 @@ export class EncarteController {
         }
       }
 
-      const arquivo = req.file;
+      // ✅ CORREÇÃO: usa req.files (array) ao invés de req.file (singular)
+      const arquivos = req.files as Express.Multer.File[];
 
-      const encarte = await this.service.criar(dados, arquivo);
+      if (!arquivos || arquivos.length === 0) {
+        throw new AppError('Pelo menos uma imagem é obrigatória', StatusCodes.BAD_REQUEST);
+      }
+
+      // ✅ Chama o método que suporta múltiplas imagens
+      const encarte = await this.service.criarComImagens(dados, arquivos);
 
       return res.status(StatusCodes.CREATED).json({
         sucesso: true,
@@ -130,6 +137,7 @@ export class EncarteController {
     }
   };
 
+  // ✅ ATUALIZAR COM MÚLTIPLAS IMAGENS
   atualizar = async (req: Request, res: Response): Promise<Response> => {
     try {
       const id = parseInt(req.params.id);
@@ -155,9 +163,11 @@ export class EncarteController {
         }
       }
 
-      const arquivo = req.file;
+      // ✅ CORREÇÃO: usa req.files (array) ao invés de req.file (singular)
+      const arquivos = req.files as Express.Multer.File[];
 
-      const encarte = await this.service.atualizar(id, dados, arquivo);
+      // ✅ Chama o método atualizar que agora aceita array de arquivos
+      const encarte = await this.service.atualizar(id, dados, arquivos);
 
       return res.json({
         sucesso: true,
