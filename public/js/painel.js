@@ -131,10 +131,23 @@ async function carregarEncartes() {
             throw new Error(err.erro || `Erro ${res.status}`);
         }
         
-        const data = await res.json();
-        console.log('✅ Dados recebidos:', data);
+        const response = await res.json();
+        console.log('✅ Resposta completa:', response);
         
-        const encartes = Array.isArray(data) ? data : (data.dados || []);
+        // ✅ CORREÇÃO: Extrair array corretamente do objeto de paginação
+        let encartes = [];
+        if (Array.isArray(response)) {
+            encartes = response;
+        } else if (response && response.data && Array.isArray(response.data)) {
+            encartes = response.data;  // ✅ Pega de response.data
+        } else if (response && response.dados && Array.isArray(response.dados)) {
+            encartes = response.dados;  // ✅ Pega de response.dados (fallback)
+        } else {
+            console.error('❌ Formato inesperado:', response);
+            throw new Error('Formato de resposta inválido');
+        }
+        
+        console.log('✅ Encartes extraídos:', encartes.length);
         
         if (!encartes || encartes.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:40px;color:#999">Nenhum encarte cadastrado</td></tr>';
@@ -144,9 +157,12 @@ async function carregarEncartes() {
         tbody.innerHTML = encartes.map(e => {
             const primeiraImagem = Array.isArray(e.imagens) ? e.imagens[0] : e.imagem_url || e.imagens;
             const imgSrc = getImagemUrl(primeiraImagem);
+            
+            // ✅ CORREÇÃO: Acessar categoria corretamente (do JOIN)
             const categoriaNome = e.categoria?.nome || e.categoria_nome || 'Sem categoria';
             const categoriaCor = e.categoria?.cor || e.categoria_cor || '#ff6600';
             const categoriaIcone = e.categoria?.icone || e.categoria_icone || '🏷️';
+            
             const totalPaginas = Array.isArray(e.imagens) ? e.imagens.length : 1;
             
             return `
@@ -175,6 +191,7 @@ async function carregarEncartes() {
         tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="color:#dc3545;padding:20px">Erro: ${err.message}</td></tr>`;
     }
 }
+
 /**
  * ✅ BUG 2 CORRIGIDO: criarEncarte com console.log para debug de erro 400
  */
