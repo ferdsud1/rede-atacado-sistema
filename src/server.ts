@@ -2,9 +2,6 @@ import app from "./app";
 import dotenv from "dotenv";
 import { pool, testConnection } from "./config/database";
 
-import categoriaRoutes from "./routes/categoriaRoutes";
-import encarteRoutes from "./routes/encarteRoutes"; // ✅ ADICIONADO
-
 dotenv.config();
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -13,9 +10,7 @@ async function startServer() {
     try {
         await testConnection();
 
-        // ROTAS
-        app.use("/categorias", categoriaRoutes);
-        app.use("/encartes", encarteRoutes); // ✅ ESSENCIAL
+        // Rotas já registradas em app.ts — não duplicar aqui
 
         app.listen(PORT, () => {
             console.log("===========================================");

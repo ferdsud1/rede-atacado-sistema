@@ -16,14 +16,23 @@ const app = express();
 // SEGURANÇA
 // ==========================================
 
-// Helmet: Adiciona headers de segurança HTTP
-app.use(helmet({
-    contentSecurityPolicy: false
-}));
+// Helmet: Adiciona headers de segurança HTTP (com CSP habilitado)
+app.use(helmet());
 
-// CORS: Permitir tudo em desenvolvimento
+// CORS: Restringir origens permitidas
+const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',')
+    : ['http://localhost:3000'];
+
 app.use(cors({
-    origin: true,
+    origin: (origin, callback) => {
+        // Permitir requisições sem origin (mobile apps, curl, etc.)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Bloqueado pelo CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -82,12 +91,16 @@ app.use((req, res, _next) => {  // ← _next (não usado)
 });
 
 // Error handler global - usa err e res
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {  // ← _req e _next não usados
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('❌ Erro não tratado:', err);
+
+    const isProduction = process.env.NODE_ENV === 'production';
 
     res.status(err.status || 500).json({
         error: err.name || 'Erro interno',
-        message: err.message || 'Algo deu errado no servidor.',
+        message: isProduction
+            ? 'Algo deu errado no servidor.'
+            : (err.message || 'Algo deu errado no servidor.'),
     });
 });
 

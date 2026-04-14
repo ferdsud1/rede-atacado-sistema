@@ -4,6 +4,15 @@ import { resend, EMAIL_FROM } from "../utils/email";
 
 const router = Router();
 
+// Sanitizar HTML para prevenir XSS em emails
+function escapeHtml(text: string): string {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 // Configurar Multer (armazenamento em memória para anexo no email)
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -30,17 +39,27 @@ router.post("/fale-conosco", async (req: Request, res: Response) => {
             return res.status(400).json({ erro: "Todos os campos são obrigatórios" });
         }
 
+        // Validar comprimento dos campos
+        if (nome.length > 200 || email.length > 254 || mensagem.length > 5000) {
+            return res.status(400).json({ erro: "Campos excedem o tamanho máximo permitido" });
+        }
+
+        // Sanitizar inputs antes de inserir no HTML
+        const nomeSeguro = escapeHtml(nome);
+        const emailSeguro = escapeHtml(email);
+        const mensagemSegura = escapeHtml(mensagem);
+
         const { error } = await resend.emails.send({
             from: EMAIL_FROM,
             to: [process.env.EMAIL_USER!],
             replyTo: [email],
-            subject: `Nova mensagem de ${nome} - Fale Conosco`,
+            subject: `Nova mensagem de ${nomeSeguro} - Fale Conosco`,
             html: `
                 <h2>Nova mensagem via Fale Conosco</h2>
-                <p><strong>Nome:</strong> ${nome}</p>
-                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Nome:</strong> ${nomeSeguro}</p>
+                <p><strong>Email:</strong> ${emailSeguro}</p>
                 <p><strong>Mensagem:</strong></p>
-                <p>${mensagem.replace(/\n/g, "<br>")}</p>
+                <p>${mensagemSegura.replace(/\n/g, "<br>")}</p>
             `
         });
 
@@ -61,21 +80,33 @@ router.post("/trabalhe-conosco", upload.single("curriculo"), async (req: Request
             return res.status(400).json({ erro: "Nome, email e mensagem são obrigatórios" });
         }
 
+        // Validar comprimento dos campos
+        if (nome.length > 200 || email.length > 254 || mensagem.length > 5000) {
+            return res.status(400).json({ erro: "Campos excedem o tamanho máximo permitido" });
+        }
+
         const file = req.file as Express.Multer.File | undefined;
+
+        // Sanitizar inputs antes de inserir no HTML
+        const nomeSeguro = escapeHtml(nome);
+        const emailSeguro = escapeHtml(email);
+        const telefoneSeguro = escapeHtml(telefone || "Não informado");
+        const cargoSeguro = escapeHtml(cargo || "Não especificado");
+        const mensagemSegura = escapeHtml(mensagem);
 
         const { error: sendError } = await resend.emails.send({
             from: EMAIL_FROM,
             to: [process.env.EMAIL_USER!],
             replyTo: [email],
-            subject: `Candidatura de ${nome} - ${cargo || "Vaga"}`,
+            subject: `Candidatura de ${nomeSeguro} - ${cargoSeguro}`,
             html: `
                 <h2>Nova Candidatura - Trabalhe Conosco</h2>
-                <p><strong>Nome:</strong> ${nome}</p>
-                <p><strong>Email:</strong> ${email}</p>
-                <p><strong>Telefone:</strong> ${telefone || "Não informado"}</p>
-                <p><strong>Cargo desejado:</strong> ${cargo || "Não especificado"}</p>
+                <p><strong>Nome:</strong> ${nomeSeguro}</p>
+                <p><strong>Email:</strong> ${emailSeguro}</p>
+                <p><strong>Telefone:</strong> ${telefoneSeguro}</p>
+                <p><strong>Cargo desejado:</strong> ${cargoSeguro}</p>
                 <p><strong>Mensagem:</strong></p>
-                <p>${mensagem.replace(/\n/g, "<br>")}</p>
+                <p>${mensagemSegura.replace(/\n/g, "<br>")}</p>
             `,
             attachments: file ? [{
                 filename: file.originalname,
