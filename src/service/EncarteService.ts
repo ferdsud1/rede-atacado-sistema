@@ -64,63 +64,65 @@ export class EncarteService {
     }
   }
 
-  async buscarTodos(filtros?: {
-    ativo?: boolean;
-    categoria_id?: number;
-    limite?: number;
-    pagina?: number;
-  }): Promise<{ data: Encarte[]; total: number }> {
-    try {
-      const { pagina = 1, limite = 10, ativo, categoria_id } = filtros || {};
-      const inicio = (pagina - 1) * limite;
-      const fim = inicio + limite - 1;
+async buscarTodos(filtros?: {
+  ativo?: boolean;
+  categoria_id?: number;
+  limite?: number;
+  pagina?: number;
+}): Promise<{  Encarte[]; total: number }> {
+  try {
+    const { pagina = 1, limite = 100, ativo, categoria_id } = filtros || {};
+    const inicio = (pagina - 1) * limite;
+    const fim = inicio + limite - 1;
 
-      let query = this.supabase
-        .from('encartes')
-        .select(`
-          *,
-          categorias (
-            id,
-            nome,
-            cor,
-            icone
-          )
-        `, { count: 'exact' });
+    // ✅ CORREÇÃO: JOIN correto com categorias
+    let query = this.supabase
+      .from('encartes')
+      .select(`
+        *,
+        categorias!left (
+          id,
+          nome,
+          cor,
+          icone
+        )
+      `, { count: 'exact' });
 
-      if (ativo !== undefined) {
-        query = query.eq('ativo', ativo);
-      }
+    if (ativo !== undefined) {
+      query = query.eq('ativo', ativo);
+    }
 
-      if (categoria_id) {
-        query = query.eq('categoria_id', categoria_id);
-      }
+    if (categoria_id) {
+      query = query.eq('categoria_id', categoria_id);
+    }
 
-      query = query.order('criado_em', { ascending: false });
+    query = query.order('criado_em', { ascending: false });
 
-      const { data, error, count } = await query.range(inicio, fim);
+    const { data, error, count } = await query.range(inicio, fim);
 
-      if (error) {
-        throw new AppError(
-          `Erro ao buscar encartes: ${error.message}`,
-          StatusCodes.INTERNAL_SERVER_ERROR
-        );
-      }
-
-      return {
-        data: data || [],
-        total: count || 0
-      };
-    } catch (error) {
-      if (error instanceof AppError) throw error;
+    if (error) {
+      console.error('❌ Erro no buscarTodos:', error);
       throw new AppError(
-        'Erro ao buscar encartes',
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        undefined,
-        error
+        `Erro ao buscar encartes: ${error.message}`,
+        StatusCodes.INTERNAL_SERVER_ERROR
       );
     }
-  }
 
+    console.log(`✅ BuscarTodos: ${data?.length || 0} encartes encontrados`);
+    return {
+       data || [],
+      total: count || 0
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new AppError(
+      'Erro ao buscar encartes',
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      undefined,
+      error
+    );
+  }
+}
   async buscarPorId(id: number): Promise<Encarte> {
     try {
       const { data, error } = await this.supabase
