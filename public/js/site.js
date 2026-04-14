@@ -213,9 +213,7 @@ function carregarPagina(index) {
     const btnNext = document.querySelector('.reader-nav-btn.next');
     
     if (img) {
-        const src = paginasEncarte[index].startsWith('http') ? 
-                    paginasEncarte[index] : `http://localhost:3000${paginasEncarte[index]}`;
-        img.src = src;
+        img.src = paginasEncarte[index];
         img.alt = `Página ${index + 1}`;
     }
     
@@ -288,9 +286,7 @@ function compartilharFacebook() {
 
 async function baixarImagem() {
     try {
-        const imageUrl = paginasEncarte[paginaAtual].startsWith('http') ? 
-                        paginasEncarte[paginaAtual] : `http://localhost:3000${paginasEncarte[paginaAtual]}`;
-        const response = await fetch(imageUrl);
+        const response = await fetch(paginasEncarte[paginaAtual]);
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -436,7 +432,7 @@ async function carregarSorteios() {
         
         grid.innerHTML = sorteios.map(s => `
             <div class="sorteio-card">
-                <img src="${s.imagem_url?.startsWith('http') ? s.imagem_url : `http://localhost:3000${s.imagem_url}`}" alt="${s.titulo}">
+                <img src="${s.imagem_url}" alt="${s.titulo}">
                 <div class="sorteio-info">
                     <h3 class="sorteio-titulo">${s.titulo}</h3>
                     <p class="sorteio-descricao">${s.descricao || ''}</p>
