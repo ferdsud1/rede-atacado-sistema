@@ -1,20 +1,8 @@
 import { Router, Request, Response } from "express";
-import nodemailer from "nodemailer";
 import multer from "multer";
+import { resend, EMAIL_FROM } from "../utils/email";
 
 const router = Router();
-
-// Configurar Nodemailer
-const smtpConfig = {
-    service: "gmail",
-    family: 4, // Forçar IPv4 para evitar erro ENETUNREACH em IPv6
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-    }
-};
-
-const transporter = nodemailer.createTransport(smtpConfig);
 
 // Configurar Multer (armazenamento em memória para anexo no email)
 const upload = multer({
@@ -42,10 +30,10 @@ router.post("/fale-conosco", async (req: Request, res: Response) => {
             return res.status(400).json({ erro: "Todos os campos são obrigatórios" });
         }
 
-        await transporter.sendMail({
-            from: `"Certo Atacado - Fale Conosco" <${process.env.EMAIL_USER}>`,
-            to: process.env.EMAIL_USER,
-            replyTo: email,
+        const { error } = await resend.emails.send({
+            from: EMAIL_FROM,
+            to: [process.env.EMAIL_USER!],
+            replyTo: [email],
             subject: `Nova mensagem de ${nome} - Fale Conosco`,
             html: `
                 <h2>Nova mensagem via Fale Conosco</h2>
@@ -55,6 +43,8 @@ router.post("/fale-conosco", async (req: Request, res: Response) => {
                 <p>${mensagem.replace(/\n/g, "<br>")}</p>
             `
         });
+
+        if (error) throw new Error(error.message);
 
         res.json({ sucesso: true });
     } catch (error: any) {
@@ -73,10 +63,10 @@ router.post("/trabalhe-conosco", upload.single("curriculo"), async (req: Request
 
         const file = req.file as Express.Multer.File | undefined;
 
-        await transporter.sendMail({
-            from: `"Certo Atacado - Trabalhe Conosco" <${process.env.EMAIL_USER}>`,
-            to: process.env.EMAIL_USER,
-            replyTo: email,
+        const { error: sendError } = await resend.emails.send({
+            from: EMAIL_FROM,
+            to: [process.env.EMAIL_USER!],
+            replyTo: [email],
             subject: `Candidatura de ${nome} - ${cargo || "Vaga"}`,
             html: `
                 <h2>Nova Candidatura - Trabalhe Conosco</h2>
@@ -87,13 +77,13 @@ router.post("/trabalhe-conosco", upload.single("curriculo"), async (req: Request
                 <p><strong>Mensagem:</strong></p>
                 <p>${mensagem.replace(/\n/g, "<br>")}</p>
             `,
-            // ✅ Anexa o currículo se houver
             attachments: file ? [{
                 filename: file.originalname,
-                content: file.buffer,
-                contentType: file.mimetype
+                content: file.buffer.toString("base64"),
             }] : []
         });
+
+        if (sendError) throw new Error(sendError.message);
 
         res.json({ sucesso: true });
     } catch (error: any) {

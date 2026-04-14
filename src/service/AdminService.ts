@@ -4,24 +4,9 @@ import { createAdminSchema, loginSchema } from "../utils/validations";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as crypto from "crypto";
-import nodemailer from "nodemailer";
 import { enviarEmailRecuperacao } from "../utils/email";
 
 const repo = new AdminRepository();
-
-// Configurar transporte de e-mail
-const smtpConfig = {
-    host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT),
-    secure: false,
-    family: 4, // Forçar IPv4 para evitar erro ENETUNREACH em IPv6
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-    },
-};
-
-const transporter = nodemailer.createTransport(smtpConfig);
 
 export class AdminService {
 
