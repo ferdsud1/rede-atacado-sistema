@@ -69,7 +69,7 @@ export class EncarteService {
     categoria_id?: number;
     limite?: number;
     pagina?: number;
-  }): Promise<{  Encarte[]; total: number }> {
+  }): Promise<{ data: Encarte[]; total: number }> {
     try {
       const { pagina = 1, limite = 100, ativo, categoria_id } = filtros || {};
       const inicio = (pagina - 1) * limite;
@@ -107,7 +107,7 @@ export class EncarteService {
       }
 
       return {
-         data || [],
+        data: data || [],
         total: count || 0
       };
     } catch (error) {
@@ -210,7 +210,7 @@ export class EncarteService {
         updateData.imagens = imagens;
       }
 
-      const {  encarte, error } = await this.supabase
+      const { data: encarte, error } = await this.supabase
         .from('encartes')
         .update(updateData)
         .eq('id', id)
@@ -422,7 +422,7 @@ export class EncarteService {
 
       console.log('📤 Dados para insert:', insertData);
 
-      const {  encarte, error } = await this.supabase
+      const { data: encarte, error } = await this.supabase
         .from('encartes')
         .insert(insertData)
         .select(`
@@ -458,7 +458,7 @@ export class EncarteService {
   }
 
   private async uploadImagem(arquivo: Express.Multer.File, titulo: string): Promise<string> {
-    const nomeArquivo = `${Date.now()}-${titulo.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
+    const nomeArquivo = `<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi>D</mi><mi>a</mi><mi>t</mi><mi>e</mi><mi mathvariant="normal">.</mi><mi>n</mi><mi>o</mi><mi>w</mi><mo stretchy="false">(</mo><mo stretchy="false">)</mo></mrow><mo>−</mo></mrow><annotation encoding="application/x-tex">{Date.now()}-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">D</span><span class="mord mathnormal">a</span><span class="mord mathnormal">t</span><span class="mord mathnormal">e</span><span class="mord">.</span><span class="mord mathnormal">n</span><span class="mord mathnormal">o</span><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="mopen">(</span><span class="mclose">)</span></span><span class="mord">−</span></span></span></span>{titulo.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
     const caminho = `${nomeArquivo}`;
 
     const { error: uploadError } = await this.supabase.storage
@@ -494,3 +494,4 @@ export class EncarteService {
       console.error('Erro ao deletar imagem:', error);
     }
   }
+}
