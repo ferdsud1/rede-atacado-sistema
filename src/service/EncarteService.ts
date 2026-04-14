@@ -494,4 +494,3 @@ export class EncarteService {
       console.error('Erro ao deletar imagem:', error);
     }
   }
-}
