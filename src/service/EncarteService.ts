@@ -405,56 +405,64 @@ async buscarTodos(filtros?: {
     }
   }
 
-  async criarComImagens(data: CreateEncarteDTO, arquivos: Express.Multer.File[]): Promise<Encarte> {
-    try {
-      const imagemUrls: string[] = [];
+ async criarComImagens(data: CreateEncarteDTO, arquivos: Express.Multer.File[]): Promise<Encarte> {
+  try {
+    console.log('📥 Criando encarte:', data);
+    
+    const imagemUrls: string[] = [];
 
-      for (const arquivo of arquivos) {
-        const url = await this.uploadImagem(arquivo, data.titulo);
-        imagemUrls.push(url);
-      }
+    for (const arquivo of arquivos) {
+      const url = await this.uploadImagem(arquivo, data.titulo);
+      imagemUrls.push(url);
+    }
 
-      const { data: encarte, error } = await this.supabase
-        .from('encartes')
-        .insert({
-          titulo: data.titulo,
-          imagem_url: imagemUrls[0] || null,
-          data_inicio: data.data_inicio,
-          data_fim: data.data_fim,
-          ativo: data.ativo ?? true,
-          categoria_id: data.categoria_id,
-          imagens: imagemUrls,
-          criado_em: new Date().toISOString()
-        })
-        .select(`
-          *,
-          categorias (
-            id,
-            nome,
-            cor,
-            icone
-          )
-        `)
-        .single();
+    const insertData: any = {
+      titulo: data.titulo,
+      imagem_url: imagemUrls[0] || null,
+      data_inicio: data.data_inicio,
+      data_fim: data.data_fim,
+      ativo: data.ativo ?? true,
+      categoria_id: data.categoria_id || null,  // ✅ Garante que categoria_id seja salvo
+      imagens: imagemUrls,
+      criado_em: new Date().toISOString()
+    };
 
-      if (error) {
-        throw new AppError(
-          `Erro ao criar encarte: ${error.message}`,
-          StatusCodes.INTERNAL_SERVER_ERROR
-        );
-      }
+    console.log('📤 Dados para insert:', insertData);
 
-      return encarte;
-    } catch (error) {
-      if (error instanceof AppError) throw error;
+    const {  encarte, error } = await this.supabase
+      .from('encartes')
+      .insert(insertData)
+      .select(`
+        *,
+        categorias!left (
+          id,
+          nome,
+          cor,
+          icone
+        )
+      `)
+      .single();
+
+    if (error) {
+      console.error('❌ Erro ao criar:', error);
       throw new AppError(
-        'Erro ao criar encarte com imagens',
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        undefined,
-        error
+        `Erro ao criar encarte: ${error.message}`,
+        StatusCodes.INTERNAL_SERVER_ERROR
       );
     }
+
+    console.log('✅ Encarte criado:', encarte);
+    return encarte;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new AppError(
+      'Erro ao criar encarte com imagens',
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      undefined,
+      error
+    );
   }
+}
 
   private async uploadImagem(arquivo: Express.Multer.File, titulo: string): Promise<string> {
     const nomeArquivo = `${Date.now()}-${titulo.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
