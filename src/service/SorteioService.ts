@@ -1,108 +1,152 @@
 import { SorteioRepository } from "../repository/SorteioRepository";
 import { CreateSorteioDTO, UpdateSorteioDTO, SorteioResponseDTO } from "../entity/SorteioDTO";
-
-const repo = new SorteioRepository();
+import { AppError } from "../utils/AppError";
+import { StatusCodes } from "http-status-codes";
 
 export class SorteioService {
+    private readonly repo = new SorteioRepository();
 
-    // ==========================================
-    // LEITURA
-    // ==========================================
-
-    // Listar sorteios ativos (Site público)
     async listarAtivos(): Promise<SorteioResponseDTO[]> {
-        return await repo.listarAtivos();
+        try {
+            return await this.repo.listarAtivos();
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao listar sorteios ativos",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
 
-    // Listar todos os sorteios (Admin)
     async listarTodos(): Promise<SorteioResponseDTO[]> {
-        return await repo.listarTodos();
+        try {
+            return await this.repo.listarTodos();
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao listar sorteios",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
 
-    // Buscar sorteio por ID (Admin)
     async buscarPorId(id: number): Promise<SorteioResponseDTO | null> {
-        return await repo.buscarPorId(id);
+        try {
+            return await this.repo.buscarPorId(id);
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao buscar sorteio",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
-
-    // ==========================================
-    // CRIAÇÃO
-    // ==========================================
 
     async criar(sorteio: CreateSorteioDTO): Promise<SorteioResponseDTO> {
-        // Validar nome
-        if (!sorteio.titulo || sorteio.titulo.trim().length < 3) {
-            throw new Error("Título do sorteio deve ter no mínimo 3 caracteres");
-        }
+        try {
+            if (!sorteio.titulo || sorteio.titulo.trim().length < 3) {
+                throw new AppError(
+                    "Título do sorteio deve ter no mínimo 3 caracteres",
+                    StatusCodes.BAD_REQUEST
+                );
+            }
 
-        // Validar datas: data_fim deve ser após data_inicio
-        if (sorteio.data_fim <= sorteio.data_inicio) {
-            throw new Error("Data de término deve ser posterior à data de início");
-        }
+            if (sorteio.data_fim <= sorteio.data_inicio) {
+                throw new AppError(
+                    "Data de término deve ser posterior à data de início",
+                    StatusCodes.BAD_REQUEST
+                );
+            }
 
-        return await repo.criar(sorteio);
+            return await this.repo.criar(sorteio);
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao criar sorteio",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
-
-    // ==========================================
-    // ATUALIZAÇÃO
-    // ==========================================
 
     async atualizar(id: number, sorteio: UpdateSorteioDTO): Promise<SorteioResponseDTO> {
-        // Verificar se sorteio existe
-        const existente = await repo.buscarPorId(id);
-        if (!existente) {
-            throw new Error("Sorteio não encontrado");
-        }
-
-        // Validar título (se estiver sendo atualizado)
-        if (sorteio.titulo && sorteio.titulo.trim().length < 3) {
-            throw new Error("Título do sorteio deve ter no mínimo 3 caracteres");
-        }
-
-        // Validar datas (se estiverem sendo atualizadas)
-        if (sorteio.data_fim && sorteio.data_inicio) {
-            const dataFim = typeof sorteio.data_fim === "string" ? new Date(sorteio.data_fim) : sorteio.data_fim;
-            const dataInicio = typeof sorteio.data_inicio === "string" ? new Date(sorteio.data_inicio) : sorteio.data_inicio;
-            
-            if (dataFim <= dataInicio) {
-                throw new Error("Data de término deve ser posterior à data de início");
+        try {
+            const existente = await this.repo.buscarPorId(id);
+            if (!existente) {
+                throw new AppError("Sorteio não encontrado", StatusCodes.NOT_FOUND);
             }
-        }
 
-        const atualizado = await repo.atualizar(id, sorteio);
-        if (!atualizado) {
-            throw new Error("Falha ao atualizar sorteio");
-        }
+            if (sorteio.titulo && sorteio.titulo.trim().length < 3) {
+                throw new AppError(
+                    "Título do sorteio deve ter no mínimo 3 caracteres",
+                    StatusCodes.BAD_REQUEST
+                );
+            }
 
-        return atualizado;
+            if (sorteio.data_fim && sorteio.data_inicio) {
+                const dataFim = typeof sorteio.data_fim === "string" ? new Date(sorteio.data_fim) : sorteio.data_fim;
+                const dataInicio = typeof sorteio.data_inicio === "string" ? new Date(sorteio.data_inicio) : sorteio.data_inicio;
+
+                if (dataFim <= dataInicio) {
+                    throw new AppError(
+                        "Data de término deve ser posterior à data de início",
+                        StatusCodes.BAD_REQUEST
+                    );
+                }
+            }
+
+            const atualizado = await this.repo.atualizar(id, sorteio);
+            if (!atualizado) {
+                throw new AppError("Falha ao atualizar sorteio", StatusCodes.INTERNAL_SERVER_ERROR);
+            }
+
+            return atualizado;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao atualizar sorteio",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
-
-    // ==========================================
-    // EXCLUSÃO
-    // ==========================================
 
     async excluir(id: number): Promise<{ mensagem: string }> {
-        // Verificar se sorteio existe
-        const existente = await repo.buscarPorId(id);
-        if (!existente) {
-            throw new Error("Sorteio não encontrado");
-        }
+        try {
+            const existente = await this.repo.buscarPorId(id);
+            if (!existente) {
+                throw new AppError("Sorteio não encontrado", StatusCodes.NOT_FOUND);
+            }
 
-        const excluiu = await repo.excluir(id);
-        if (!excluiu) {
-            throw new Error("Falha ao excluir sorteio");
-        }
+            const excluiu = await this.repo.excluir(id);
+            if (!excluiu) {
+                throw new AppError("Falha ao excluir sorteio", StatusCodes.INTERNAL_SERVER_ERROR);
+            }
 
-        return { mensagem: "Sorteio excluído com sucesso!" };
+            return { mensagem: "Sorteio excluído com sucesso!" };
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao excluir sorteio",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
-
-    // ==========================================
-    // STATUS
-    // ==========================================
 
     async alterarStatus(id: number, ativo: boolean): Promise<SorteioResponseDTO> {
         const sorteio = await this.buscarPorId(id);
         if (!sorteio) {
-            throw new Error("Sorteio não encontrado");
+            throw new AppError("Sorteio não encontrado", StatusCodes.NOT_FOUND);
         }
 
         return await this.atualizar(id, { ativo });
@@ -116,49 +160,73 @@ export class SorteioService {
         return await this.alterarStatus(id, false);
     }
 
-    // ==========================================
-    // PARTICIPANTES
-    // ==========================================
-
     async adicionarParticipante(sorteioId: number, nome: string, telefone: string | null): Promise<any> {
-        // Verificar se sorteio existe e está ativo
-        const sorteio = await repo.buscarPorId(sorteioId);
-        if (!sorteio) {
-            throw new Error("Sorteio não encontrado");
-        }
-        if (!sorteio.ativo) {
-            throw new Error("Este sorteio não está ativo");
-        }
+        try {
+            const sorteio = await this.repo.buscarPorId(sorteioId);
+            if (!sorteio) {
+                throw new AppError("Sorteio não encontrado", StatusCodes.NOT_FOUND);
+            }
+            if (!sorteio.ativo) {
+                throw new AppError("Este sorteio não está ativo", StatusCodes.BAD_REQUEST);
+            }
 
-        // Verificar se já participou
-        const jaParticipou = await repo.verificarParticipacao(sorteioId, nome, telefone);
-        if (jaParticipou) {
-            throw new Error("Você já está participando deste sorteio");
-        }
+            const jaParticipou = await this.repo.verificarParticipacao(sorteioId, nome, telefone);
+            if (jaParticipou) {
+                throw new AppError("Você já está participando deste sorteio", StatusCodes.CONFLICT);
+            }
 
-        return await repo.adicionarParticipante(sorteioId, nome, telefone);
+            return await this.repo.adicionarParticipante(sorteioId, nome, telefone);
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao adicionar participante",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
 
     async listarParticipantes(sorteioId: number): Promise<any[]> {
-        return await repo.listarParticipantes(sorteioId);
+        try {
+            return await this.repo.listarParticipantes(sorteioId);
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao listar participantes",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
 
     async sortearGanhador(sorteioId: number): Promise<any> {
-        const sorteio = await repo.buscarPorId(sorteioId);
-        if (!sorteio) {
-            throw new Error("Sorteio não encontrado");
-        }
+        try {
+            const sorteio = await this.repo.buscarPorId(sorteioId);
+            if (!sorteio) {
+                throw new AppError("Sorteio não encontrado", StatusCodes.NOT_FOUND);
+            }
 
-        const total = await repo.contarParticipantes(sorteioId);
-        if (total === 0) {
-            throw new Error("Não há participantes neste sorteio");
-        }
+            const total = await this.repo.contarParticipantes(sorteioId);
+            if (total === 0) {
+                throw new AppError("Não há participantes neste sorteio", StatusCodes.BAD_REQUEST);
+            }
 
-        const ganhador = await repo.buscarParticipanteAleatorio(sorteioId);
-        if (!ganhador) {
-            throw new Error("Erro ao sortear ganhador");
-        }
+            const ganhador = await this.repo.buscarParticipanteAleatorio(sorteioId);
+            if (!ganhador) {
+                throw new AppError("Erro ao sortear ganhador", StatusCodes.INTERNAL_SERVER_ERROR);
+            }
 
-        return ganhador;
+            return ganhador;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao sortear ganhador",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
 }
