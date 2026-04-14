@@ -184,4 +184,65 @@ router.post("/desativar/:id", authMiddleware, async (req: AuthRequest, res) => {
     }
 });
 
+// ============================================================================
+// PARTICIPANTES DO SORTEIO
+// ============================================================================
+
+// Participar de um sorteio (público)
+router.post("/:id/participar", async (req: Request, res: Response) => {
+    try {
+        const sorteioId = parseInt(req.params.id);
+        if (isNaN(sorteioId)) {
+            res.status(400).json({ erro: "ID inválido" });
+            return;
+        }
+
+        const { nome, telefone } = req.body;
+
+        if (!nome || nome.trim().length < 2) {
+            res.status(400).json({ erro: "Nome deve ter pelo menos 2 caracteres" });
+            return;
+        }
+
+        const participante = await service.adicionarParticipante(sorteioId, nome.trim(), telefone?.trim() || null);
+        res.status(201).json(participante);
+    } catch (err: any) {
+        console.error("Erro ao participar do sorteio:", err);
+        res.status(400).json({ erro: err.message });
+    }
+});
+
+// Listar participantes de um sorteio (admin)
+router.get("/:id/participantes", authMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const sorteioId = parseInt(req.params.id);
+        if (isNaN(sorteioId)) {
+            res.status(400).json({ erro: "ID inválido" });
+            return;
+        }
+
+        const participantes = await service.listarParticipantes(sorteioId);
+        res.json(participantes);
+    } catch (err: any) {
+        res.status(500).json({ erro: err.message });
+    }
+});
+
+// Sortear ganhador (admin)
+router.post("/:id/sortear", authMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const sorteioId = parseInt(req.params.id);
+        if (isNaN(sorteioId)) {
+            res.status(400).json({ erro: "ID inválido" });
+            return;
+        }
+
+        const ganhador = await service.sortearGanhador(sorteioId);
+        res.json({ sucesso: true, ganhador });
+    } catch (err: any) {
+        console.error("Erro ao sortear ganhador:", err);
+        res.status(400).json({ erro: err.message });
+    }
+});
+
 export default router;

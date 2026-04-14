@@ -32,9 +32,9 @@ router.get("/ativos", async (req: Request, res: Response) => {
         const formatados = encartes.map(e => ({
             ...e,
             imagens: (e as any).imagens || ((e as any).imagem_url ? [(e as any).imagem_url] : []),
-            categoria_nome: (e as any).categoria_nome || 'Ofertas',
-            categoria_cor: (e as any).categoria_cor || '#ff6600',
-            categoria_icone: (e as any).categoria_icone || '🏷️'
+            categoria_nome: (e as any).categorias?.nome || (e as any).categoria_nome || 'Ofertas',
+            categoria_cor: (e as any).categorias?.cor || (e as any).categoria_cor || '#ff6600',
+            categoria_icone: (e as any).categorias?.icone || (e as any).categoria_icone || '🏷️'
         }));
         console.log('📤 Encartes ativos retornados:', formatados.length);
         res.json(formatados);
@@ -103,8 +103,17 @@ router.post('/com-imagens', authMiddleware, upload.array('imagens', 20), async (
 // ✅ LISTAR TODOS (Admin)
 router.get("/listar", authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const encartes = await service.buscarTodos();
-        res.json(encartes);
+        const result = await service.buscarTodos();
+        const normalizado = {
+            ...result,
+            data: result.data.map(e => ({
+                ...e,
+                categoria_nome: (e as any).categorias?.nome || (e as any).categoria_nome,
+                categoria_cor: (e as any).categorias?.cor || (e as any).categoria_cor,
+                categoria_icone: (e as any).categorias?.icone || (e as any).categoria_icone
+            }))
+        };
+        res.json(normalizado);
     } catch (err: any) {
         console.error("❌ Erro ao listar encartes:", err);
         res.status(500).json({ erro: err.message });

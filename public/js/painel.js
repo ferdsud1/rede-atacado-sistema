@@ -469,6 +469,7 @@ async function carregarSorteios() {
                     <td>${formatarData(s.data_inicio)} até ${formatarData(s.data_fim)}</td>
                     <td><span class="status-badge ${cls}">${status}</span></td>
                     <td>
+                        <button class="btn-icon" onclick="verParticipantes(${s.id})" title="Participantes" style="color:#28a745;"><i class="fas fa-users"></i></button>
                         <button class="btn-icon btn-edit" onclick="editarSorteio(${s.id})" title="Editar"><i class="fas fa-edit"></i></button>
                         <button class="btn-icon btn-delete" onclick="excluirSorteio(${s.id})" title="Excluir"><i class="fas fa-trash"></i></button>
                     </td>
@@ -482,12 +483,236 @@ async function carregarSorteios() {
     }
 }
 
+async function salvarSorteio() {
+    const id = document.getElementById('sorteioId')?.value;
+    const files = document.getElementById('sorteioImagem').files;
+    
+    const titulo = document.getElementById('sorteioTitulo').value?.trim();
+    const descricao = document.getElementById('sorteioDescricao').value?.trim();
+    const data_inicio = document.getElementById('sorteioDataInicio').value;
+    const data_fim = document.getElementById('sorteioDataFim').value;
+    
+    if (!titulo || titulo.length < 3) {
+        alert('Título deve ter pelo menos 3 caracteres');
+        return;
+    }
+    if (!data_inicio || !data_fim) {
+        alert('Datas de início e fim são obrigatórias');
+        return;
+    }
+    if (new Date(data_fim) <= new Date(data_inicio)) {
+        alert('Data final deve ser posterior à data inicial');
+        return;
+    }
+    if (!id && files.length === 0) {
+        alert('Selecione uma imagem para criar o sorteio');
+        return;
+    }
+    
+    try {
+        const fd = new FormData();
+        fd.append('titulo', titulo);
+        fd.append('descricao', descricao || '');
+        fd.append('data_inicio', data_inicio);
+        fd.append('data_fim', data_fim);
+        fd.append('ativo', 'true');
+        
+        if (files.length > 0) {
+            fd.append('imagem', files[0]);
+        }
+        
+        let url = '/sorteios/criar';
+        let method = 'POST';
+        
+        if (id) {
+            url = `/sorteios/atualizar/${id}`;
+            method = 'PUT';
+        }
+        
+        const res = await fetch(url, {
+            method,
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: fd
+        });
+        
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.erro || `Erro ${res.status}`);
+        }
+        
+        alert(id ? '✅ Sorteio atualizado!' : '✅ Sorteio criado!');
+        limparFormSorteio();
+        carregarSorteios();
+    } catch (err) {
+        console.error('❌ Erro ao salvar sorteio:', err);
+        alert('Erro: ' + err.message);
+    }
+}
+
+function limparFormSorteio() {
+    const form = document.getElementById('sorteioForm');
+    if (form) form.reset();
+    document.getElementById('sorteioId').value = '';
+    const preview = document.getElementById('sorteioPreview');
+    if (preview) {
+        preview.style.display = 'none';
+        const img = preview.querySelector('img');
+        if (img) img.src = '';
+    }
+    document.getElementById('sorteioImagem').required = true;
+}
+
 async function editarSorteio(id) {
-    console.log('editarSorteio chamado:', id);
+    try {
+        const res = await fetch(`/sorteios/buscar/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Erro ao buscar sorteio');
+        
+        const s = await res.json();
+        
+        document.getElementById('sorteioId').value = s.id;
+        document.getElementById('sorteioTitulo').value = s.titulo || '';
+        document.getElementById('sorteioDescricao').value = s.descricao || '';
+        document.getElementById('sorteioDataInicio').value = s.data_inicio?.split('T')[0] || '';
+        document.getElementById('sorteioDataFim').value = s.data_fim?.split('T')[0] || '';
+        
+        if (s.imagem_url) {
+            const preview = document.getElementById('sorteioPreview');
+            if (preview) {
+                preview.style.display = 'block';
+                const img = preview.querySelector('img');
+                if (img) img.src = s.imagem_url;
+            }
+        }
+        
+        document.getElementById('sorteioImagem').required = false;
+        document.getElementById('sorteioForm')?.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+        console.error('❌ Erro ao editar sorteio:', err);
+        alert('Erro: ' + err.message);
+    }
 }
 
 async function excluirSorteio(id) {
-    console.log('excluirSorteio chamado:', id);
+    if (!confirm('Tem certeza que deseja excluir este sorteio?')) return;
+    
+    try {
+        const res = await fetch(`/sorteios/excluir/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.erro || `Erro ${res.status}`);
+        }
+        
+        alert('✅ Sorteio excluído!');
+        carregarSorteios();
+    } catch (err) {
+        console.error('❌ Erro ao excluir sorteio:', err);
+        alert('Erro: ' + err.message);
+    }
+}
+
+// ============================================================================
+// PARTICIPANTES DO SORTEIO
+// ============================================================================
+
+async function verParticipantes(sorteioId) {
+    try {
+        const res = await fetch(`/sorteios/${sorteioId}/participantes`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Erro ao buscar participantes');
+        
+        const participantes = await res.json();
+        
+        let html = `
+            <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()">
+                <div style="background:white;border-radius:12px;padding:30px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h3 style="margin:0;color:#333;">👥 Participantes (${participantes.length})</h3>
+                        <button onclick="this.closest('div[style]').parentElement.remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>
+                    </div>
+                    ${participantes.length === 0 
+                        ? '<p style="color:#999;text-align:center;padding:20px;">Nenhum participante inscrito ainda.</p>'
+                        : `<table style="width:100%;border-collapse:collapse;">
+                            <thead><tr style="background:#fff3e6;">
+                                <th style="padding:10px;text-align:left;color:#ff6600;">#</th>
+                                <th style="padding:10px;text-align:left;color:#ff6600;">Nome</th>
+                                <th style="padding:10px;text-align:left;color:#ff6600;">Telefone</th>
+                                <th style="padding:10px;text-align:left;color:#ff6600;">Data</th>
+                            </tr></thead>
+                            <tbody>${participantes.map((p, i) => `
+                                <tr style="border-bottom:1px solid #eee;">
+                                    <td style="padding:8px;">${i + 1}</td>
+                                    <td style="padding:8px;font-weight:600;">${p.nome}</td>
+                                    <td style="padding:8px;">${p.telefone || '-'}</td>
+                                    <td style="padding:8px;font-size:12px;color:#999;">${formatarData(p.criado_em)}</td>
+                                </tr>
+                            `).join('')}</tbody>
+                          </table>`
+                    }
+                    <div style="margin-top:20px;text-align:center;">
+                        <button onclick="sortearGanhador(${sorteioId})" 
+                                style="background:#ff6600;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;"
+                                ${participantes.length === 0 ? 'disabled style="background:#ccc;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:16px;font-weight:600;cursor:not-allowed;"' : ''}>
+                            🎲 Sortear Ganhador
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', html);
+    } catch (err) {
+        console.error('❌ Erro ao ver participantes:', err);
+        alert('Erro: ' + err.message);
+    }
+}
+
+async function sortearGanhador(sorteioId) {
+    if (!confirm('Deseja sortear um ganhador agora?')) return;
+    
+    try {
+        const res = await fetch(`/sorteios/${sorteioId}/sortear`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.erro || `Erro ${res.status}`);
+        }
+        
+        const resultado = await res.json();
+        
+        // Fechar modal de participantes
+        document.querySelectorAll('div[style*="position:fixed"]').forEach(el => el.remove());
+        
+        // Mostrar ganhador com animação
+        const winnerHtml = `
+            <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1001;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()">
+                <div style="background:white;border-radius:16px;padding:40px;max-width:500px;width:90%;text-align:center;animation:scaleIn 0.5s ease;">
+                    <div style="font-size:60px;margin-bottom:15px;">🎉</div>
+                    <h2 style="color:#ff6600;margin:0 0 10px;">Ganhador(a)!</h2>
+                    <p style="font-size:28px;font-weight:700;color:#333;margin:15px 0;">${resultado.ganhador.nome}</p>
+                    ${resultado.ganhador.telefone ? `<p style="color:#666;">${resultado.ganhador.telefone}</p>` : ''}
+                    <button onclick="this.closest('div[style]').parentElement.remove()" 
+                            style="margin-top:20px;background:#ff6600;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:16px;cursor:pointer;">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', winnerHtml);
+        
+    } catch (err) {
+        console.error('❌ Erro ao sortear:', err);
+        alert('Erro: ' + err.message);
+    }
 }
 
 // ============================================================================
@@ -529,6 +754,33 @@ document.addEventListener('DOMContentLoaded', () => {
         encarteForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             await salvarEncarte();
+        });
+    }
+    
+    // Submit do formulário de sorteios
+    const sorteioForm = document.getElementById('sorteioForm');
+    if (sorteioForm) {
+        sorteioForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await salvarSorteio();
+        });
+    }
+    
+    // Preview de imagem - Sorteio
+    const sorteioFile = document.getElementById('sorteioImagem');
+    if (sorteioFile) {
+        sorteioFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const preview = document.getElementById('sorteioPreview');
+            if (file && preview) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    preview.style.display = 'block';
+                    const img = preview.querySelector('img');
+                    if (img) img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
         });
     }
 });
