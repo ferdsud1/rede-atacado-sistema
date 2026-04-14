@@ -1,23 +1,13 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const smtpConfig = {
-    host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT),
-    secure: false, // false para porta 587
-    family: 4, // Forçar IPv4 para evitar erro ENETUNREACH em IPv6
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-    },
-};
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const transporter = nodemailer.createTransport(smtpConfig);
+const EMAIL_FROM = process.env.EMAIL_FROM || "Certo Atacado <onboarding@resend.dev>";
 
-// Verifica conexão ao iniciar
-transporter.verify().then(() => console.log("✅ Servidor de email conectado")).catch(console.error);
+export { resend, EMAIL_FROM };
 
 export async function enviarEmailRecuperacao(destinatario: string, token: string): Promise<void> {
     const resetLink = `${process.env.FRONTEND_URL || "http://localhost:3000"}/resetar-senha.html?token=${token}`;
@@ -34,10 +24,14 @@ export async function enviarEmailRecuperacao(destinatario: string, token: string
         </div>
     `;
 
-    await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
-        to: destinatario,
+    const { error } = await resend.emails.send({
+        from: EMAIL_FROM,
+        to: [destinatario],
         subject: "Redefinição de Senha - Certo Atacado",
         html,
     });
+
+    if (error) {
+        throw new Error(`Erro ao enviar email: ${error.message}`);
+    }
 }
