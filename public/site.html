@@ -371,71 +371,145 @@
            ========================================== */
         @media (max-width: 1000px) {
             .promo-banner-inner {
-                flex-direction: column;
-                gap: 35px;
-                padding: 10px;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                gap: 15px;
+                padding: 10px 15px;
+                justify-content: center;
+                align-items: center;
+            }
+            .promo-left, .promo-right {
+                flex: 0 1 auto;
+                transform: scale(0.85);
+            }
+            .promo-center {
+                flex: 0 1 auto;
+                transform: scale(1.1);
             }
             .promo-left, .promo-right, .promo-center {
                 animation: none;
-                transform: none;
-            }
-            .promo-center {
-                animation: scaleIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
             }
             .cert-logo-main {
-                font-size: 64px;
+                font-size: 50px;
             }
             .cert-check-circle {
-                width: 64px;
-                height: 64px;
+                width: 50px;
+                height: 50px;
             }
             .cert-check-circle svg {
-                width: 36px;
-                height: 36px;
+                width: 30px;
+                height: 30px;
             }
             .club-text h3 {
-                font-size: 26px;
+                font-size: 18px;
             }
             .muller-name {
-                font-size: 52px;
+                font-size: 36px;
+            }
+            .muller-slogan {
+                font-size: 12px;
             }
             .app-buttons-banner {
                 flex-direction: row;
-                flex-wrap: wrap;
+                flex-wrap: nowrap;
+                gap: 6px;
+            }
+            .app-btn-banner {
+                padding: 5px 8px;
+                font-size: 11px;
+            }
+            .app-btn-banner i {
+                font-size: 16px;
+            }
+            .app-btn-banner .app-text small {
+                font-size: 7px;
+            }
+            .app-btn-banner .app-text strong {
+                font-size: 10px;
+            }
+            .club-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+                margin-bottom: 5px;
+            }
+            .cert-sub {
+                font-size: 12px;
+                letter-spacing: 2px;
+            }
+            .cert-slogan {
+                font-size: 10px;
             }
         }
 
         @media (max-width: 600px) {
             .promo-banner {
-                padding: 30px 0;
+                padding: 20px 0;
+            }
+            .promo-banner-inner {
+                flex-direction: row;
+                flex-wrap: nowrap;
+                gap: 8px;
+                padding: 5px 8px;
+            }
+            .promo-left, .promo-right {
+                transform: scale(0.7);
+            }
+            .promo-center {
+                transform: scale(0.9);
             }
             .cert-logo-main {
-                font-size: 48px;
+                font-size: 36px;
             }
             .cert-check-circle {
-                width: 48px;
-                height: 48px;
+                width: 36px;
+                height: 36px;
             }
             .cert-check-circle svg {
-                width: 28px;
-                height: 28px;
+                width: 22px;
+                height: 22px;
             }
             .cert-sub {
-                font-size: 13px;
-                letter-spacing: 2px;
+                font-size: 10px;
+                letter-spacing: 1px;
             }
             .cert-slogan {
-                font-size: 12px;
+                font-size: 9px;
             }
             .muller-name {
-                font-size: 42px;
+                font-size: 28px;
+            }
+            .muller-rede {
+                font-size: 10px;
+            }
+            .muller-slogan {
+                font-size: 10px;
             }
             .club-text h3 {
-                font-size: 22px;
+                font-size: 14px;
+            }
+            .club-icon {
+                width: 26px;
+                height: 26px;
+                font-size: 13px;
+                margin-bottom: 4px;
             }
             .app-buttons-banner {
-                flex-direction: column;
-                align-items: center;
+                flex-direction: row;
+                gap: 4px;
+            }
+            .app-btn-banner {
+                padding: 4px 6px;
+                border-radius: 6px;
+            }
+            .app-btn-banner i {
+                font-size: 14px;
+            }
+            .app-btn-banner .app-text small {
+                font-size: 6px;
+            }
+            .app-btn-banner .app-text strong {
+                font-size: 9px;
             }
         }
     </style>
