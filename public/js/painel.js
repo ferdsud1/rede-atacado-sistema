@@ -106,9 +106,6 @@ function logout() {
 // API - ENCARTES
 // ============================================================================
 
-/**
- * ✅ BUG 1 CORRIGIDO: carregarEncartes usa "res" ao invés de "response"
- */
 async function carregarEncartes() {
     const tbody = document.getElementById('encartesList');
     if (!tbody) return;
@@ -139,9 +136,9 @@ async function carregarEncartes() {
         if (Array.isArray(response)) {
             encartes = response;
         } else if (response && response.data && Array.isArray(response.data)) {
-            encartes = response.data;  // ✅ Pega de response.data
+            encartes = response.data;
         } else if (response && response.dados && Array.isArray(response.dados)) {
-            encartes = response.dados;  // ✅ Pega de response.dados (fallback)
+            encartes = response.dados;
         } else {
             console.error('❌ Formato inesperado:', response);
             throw new Error('Formato de resposta inválido');
@@ -154,60 +151,60 @@ async function carregarEncartes() {
             return;
         }
         
-    tbody.innerHTML = encartes.map(e => {
-    const primeiraImagem = Array.isArray(e.imagens) ? e.imagens[0] : e.imagem_url || e.imagens;
-    const imgSrc = getImagemUrl(primeiraImagem);
-    
-    // ✅ CORREÇÃO: Verificar múltiplos formatos de categoria
-    console.log('Encarte:', e.id, 'Categoria:', e.categoria, 'Categoria ID:', e.categoria_id);
-    
-    const categoria = e.categoria || e.categorias;  // Supabase pode retornar no singular ou plural
-    const categoriaNome = categoria?.nome || e.categoria_nome || 'Sem categoria';
-    const categoriaCor = categoria?.cor || e.categoria_cor || '#ff6600';
-    const categoriaIcone = categoria?.icone || e.categoria_icone || '🏷️';
-    
-    const totalPaginas = Array.isArray(e.imagens) ? e.imagens.length : 1;
-    
-    return `
-        <tr>
-            <td style="position:relative">
-                <img src="${imgSrc}" alt="${e.titulo || ''}" style="width:50px;height:50px;object-fit:cover;border-radius:6px" onerror="handleImageError(this)">
-                ${totalPaginas > 1 ? `<span style="position:absolute;top:2px;right:2px;background:#ff6600;color:white;font-size:9px;padding:2px 5px;border-radius:3px;font-weight:bold">${totalPaginas}p</span>` : ''}
-            </td>
-            <td><strong>${e.titulo || 'Sem título'}</strong></td>
-            <td>
-                ${categoriaNome !== 'Sem categoria' 
-                    ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:${categoriaCor}20;color:${categoriaCor};border-radius:4px;font-size:12px">
-                        ${categoriaIcone} ${categoriaNome}
-                       </span>`
-                    : `<span style="color:#999;font-size:12px">Sem categoria</span>`
-                }
-            </td>
-            <td>${formatarData(e.data_inicio)} até ${formatarData(e.data_fim)}</td>
-            <td>
-                <button class="btn-icon btn-edit" onclick="editarEncarte(${e.id})" title="Editar"><i class="fas fa-edit"></i></button>
-                <button class="btn-icon btn-delete" onclick="excluirEncarte(${e.id})" title="Excluir"><i class="fas fa-trash"></i></button>
-            </td>
-        </tr>
-    `;
-}).join('');
+        tbody.innerHTML = encartes.map(e => {
+            const primeiraImagem = Array.isArray(e.imagens) ? e.imagens[0] : e.imagem_url || e.imagens;
+            const imgSrc = getImagemUrl(primeiraImagem);
+            
+            console.log('Encarte:', e.id, 'Categoria:', e.categoria, 'Categoria ID:', e.categoria_id);
+            
+            const categoria = e.categoria || e.categorias;
+            const categoriaNome = categoria?.nome || e.categoria_nome || 'Sem categoria';
+            const categoriaCor = categoria?.cor || e.categoria_cor || '#ff6600';
+            const categoriaIcone = categoria?.icone || e.categoria_icone || '🏷️';
+            
+            const totalPaginas = Array.isArray(e.imagens) ? e.imagens.length : 1;
+            
+            return `
+                <tr>
+                    <td style="position:relative">
+                        <img src="${imgSrc}" alt="${e.titulo || ''}" style="width:50px;height:50px;object-fit:cover;border-radius:6px" onerror="handleImageError(this)">
+                        ${totalPaginas > 1 ? `<span style="position:absolute;top:2px;right:2px;background:#ff6600;color:white;font-size:9px;padding:2px 5px;border-radius:3px;font-weight:bold">${totalPaginas}p</span>` : ''}
+                    </td>
+                    <td><strong>${e.titulo || 'Sem título'}</strong></td>
+                    <td>
+                        ${categoriaNome !== 'Sem categoria' 
+                            ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:${categoriaCor}20;color:${categoriaCor};border-radius:4px;font-size:12px">
+                                ${categoriaIcone} ${categoriaNome}
+                               </span>`
+                            : `<span style="color:#999;font-size:12px">Sem categoria</span>`
+                        }
+                    </td>
+                    <td>${formatarData(e.data_inicio)} até ${formatarData(e.data_fim)}</td>
+                    <td>
+                        <button class="btn-icon btn-edit" onclick="editarEncarte(${e.id})" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon btn-delete" onclick="excluirEncarte(${e.id})" title="Excluir"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+    } catch (err) {
+        console.error('❌ Erro ao carregar encartes:', err);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="color:#dc3545;padding:20px">Erro: ${err.message}</td></tr>`;
+    }
+}
 
-/**
- * ✅ BUG 2 CORRIGIDO: criarEncarte com console.log para debug de erro 400
- */
 async function criarEncarte(dados, files) {
     console.log('📤 Criando encarte:', { titulo: dados.titulo, imagens: files?.length });
     
     const fd = new FormData();
 
-    // Append dos campos textuais
     Object.entries(dados).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
             fd.append(key, String(value));
         }
     });
 
-    // Append das imagens - field name: 'imagens' (plural) conforme backend
     for (const file of files) {
         fd.append('imagens', file);
     }
@@ -216,14 +213,12 @@ async function criarEncarte(dados, files) {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`
-            // ⚠️ Content-Type é definido automaticamente para FormData
         },
         body: fd
     });
 
     const data = await res.json();
 
-    // 🔍 DEBUG DO ERRO 400 - Mostra exatamente o que o backend retornou
     if (!res.ok) {
         console.log('❌ Erro do backend:', data);
         console.log('📦 FormData enviado (chaves):', Array.from(fd.keys()));
@@ -243,7 +238,6 @@ async function atualizarEncarteComImagens(id, dados, files) {
         }
     });
     
-    // Field name para update: 'imagem' (singular) conforme backend
     for (const file of files) {
         fd.append('imagem', file);
     }
@@ -354,7 +348,6 @@ async function salvarEncarte() {
         ativo: true
     };
     
-    // Validação básica no frontend
     if (!dados.titulo || dados.titulo.length < 3) {
         alert('Título deve ter pelo menos 3 caracteres');
         return;
@@ -374,7 +367,6 @@ async function salvarEncarte() {
     
     try {
         if (id) {
-            // Modo edição
             if (files.length > 0) {
                 await atualizarEncarteComImagens(parseInt(id), dados, files);
             } else {
@@ -382,7 +374,6 @@ async function salvarEncarte() {
             }
             alert('✅ Encarte atualizado com sucesso!');
         } else {
-            // Modo criação
             await criarEncarte(dados, files);
             alert('✅ Encarte criado com sucesso!');
         }
@@ -429,7 +420,16 @@ async function carregarSelectCategorias() {
 }
 
 // ============================================================================
-// SORTEIOS (mantido original com organização)
+// CATEGORIAS - CRUD
+// ============================================================================
+
+async function carregarCategorias() {
+    // Placeholder - implementar conforme necessidade
+    console.log('carregarCategorias chamado');
+}
+
+// ============================================================================
+// SORTEIOS
 // ============================================================================
 
 async function carregarSorteios() {
@@ -482,8 +482,13 @@ async function carregarSorteios() {
     }
 }
 
-// ... [funções de sorteios e categorias mantidas com mesma estrutura] ...
-// (Para não estender demais, as funções de sorteios/categorias seguem o mesmo padrão)
+async function editarSorteio(id) {
+    console.log('editarSorteio chamado:', id);
+}
+
+async function excluirSorteio(id) {
+    console.log('excluirSorteio chamado:', id);
+}
 
 // ============================================================================
 // INICIALIZAÇÃO
@@ -526,8 +531,6 @@ document.addEventListener('DOMContentLoaded', () => {
             await salvarEncarte();
         });
     }
-    
-    // ... [outros listeners mantidos] ...
 });
 
 // ============================================================================
