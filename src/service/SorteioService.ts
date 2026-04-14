@@ -115,4 +115,50 @@ export class SorteioService {
     async desativar(id: number): Promise<SorteioResponseDTO> {
         return await this.alterarStatus(id, false);
     }
+
+    // ==========================================
+    // PARTICIPANTES
+    // ==========================================
+
+    async adicionarParticipante(sorteioId: number, nome: string, telefone: string | null): Promise<any> {
+        // Verificar se sorteio existe e está ativo
+        const sorteio = await repo.buscarPorId(sorteioId);
+        if (!sorteio) {
+            throw new Error("Sorteio não encontrado");
+        }
+        if (!sorteio.ativo) {
+            throw new Error("Este sorteio não está ativo");
+        }
+
+        // Verificar se já participou
+        const jaParticipou = await repo.verificarParticipacao(sorteioId, nome, telefone);
+        if (jaParticipou) {
+            throw new Error("Você já está participando deste sorteio");
+        }
+
+        return await repo.adicionarParticipante(sorteioId, nome, telefone);
+    }
+
+    async listarParticipantes(sorteioId: number): Promise<any[]> {
+        return await repo.listarParticipantes(sorteioId);
+    }
+
+    async sortearGanhador(sorteioId: number): Promise<any> {
+        const sorteio = await repo.buscarPorId(sorteioId);
+        if (!sorteio) {
+            throw new Error("Sorteio não encontrado");
+        }
+
+        const total = await repo.contarParticipantes(sorteioId);
+        if (total === 0) {
+            throw new Error("Não há participantes neste sorteio");
+        }
+
+        const ganhador = await repo.buscarParticipanteAleatorio(sorteioId);
+        if (!ganhador) {
+            throw new Error("Erro ao sortear ganhador");
+        }
+
+        return ganhador;
+    }
 }

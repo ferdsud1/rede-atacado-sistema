@@ -437,6 +437,22 @@ async function carregarSorteios() {
                     <h3 class="sorteio-titulo">${s.titulo}</h3>
                     <p class="sorteio-descricao">${s.descricao || ''}</p>
                     <div class="sorteio-datas">📅 ${formatarData(s.data_inicio)} a ${formatarData(s.data_fim)}</div>
+                    <div class="sorteio-participar" style="margin-top:12px;">
+                        <form onsubmit="participarSorteio(event, ${s.id})" style="display:flex;flex-direction:column;gap:8px;">
+                            <input type="text" name="nome" placeholder="Seu nome completo" required minlength="2"
+                                   style="padding:10px 14px;border:2px solid #eee;border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border 0.3s;"
+                                   onfocus="this.style.borderColor='#ff6600'" onblur="this.style.borderColor='#eee'">
+                            <input type="tel" name="telefone" placeholder="Telefone (opcional)"
+                                   style="padding:10px 14px;border:2px solid #eee;border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border 0.3s;"
+                                   onfocus="this.style.borderColor='#ff6600'" onblur="this.style.borderColor='#eee'">
+                            <button type="submit"
+                                    style="background:#ff6600;color:white;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.3s;"
+                                    onmouseover="this.style.background='#e55a00'" onmouseout="this.style.background='#ff6600'">
+                                🎲 Participar do Sorteio
+                            </button>
+                        </form>
+                        <div id="sorteio-msg-${s.id}" style="margin-top:8px;font-size:13px;text-align:center;display:none;"></div>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -444,6 +460,61 @@ async function carregarSorteios() {
         console.error('Erro ao carregar sorteios:', error);
         const grid = document.getElementById('sorteios-grid');
         if (grid) grid.innerHTML = '<div class="empty-message">Erro ao carregar sorteios</div>';
+    }
+}
+
+// ==========================================
+// PARTICIPAR DO SORTEIO
+// ==========================================
+async function participarSorteio(event, sorteioId) {
+    event.preventDefault();
+    const form = event.target;
+    const nome = form.nome.value.trim();
+    const telefone = form.telefone.value.trim();
+    const msgDiv = document.getElementById(`sorteio-msg-${sorteioId}`);
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    if (!nome || nome.length < 2) {
+        if (msgDiv) {
+            msgDiv.style.display = 'block';
+            msgDiv.style.color = '#e53e3e';
+            msgDiv.textContent = 'Nome deve ter pelo menos 2 caracteres';
+        }
+        return;
+    }
+    
+    try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
+        
+        const res = await fetch(`/sorteios/${sorteioId}/participar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, telefone: telefone || null })
+        });
+        
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.erro || `Erro ${res.status}`);
+        }
+        
+        if (msgDiv) {
+            msgDiv.style.display = 'block';
+            msgDiv.style.color = '#38a169';
+            msgDiv.innerHTML = '\u2705 Participa\u00e7\u00e3o confirmada! Boa sorte!';
+        }
+        form.reset();
+        submitBtn.textContent = '\u2705 Inscrito!';
+        submitBtn.style.background = '#38a169';
+    } catch (err) {
+        console.error('Erro ao participar:', err);
+        if (msgDiv) {
+            msgDiv.style.display = 'block';
+            msgDiv.style.color = '#e53e3e';
+            msgDiv.textContent = err.message || 'Erro ao participar';
+        }
+        submitBtn.disabled = false;
+        submitBtn.textContent = '\ud83c\udfb2 Participar do Sorteio';
     }
 }
 
@@ -477,11 +548,6 @@ async function carregarDadosEmpresa() {
     } catch (error) {
         console.error('Erro ao carregar dados da empresa:', error);
     }
-}
-
-function formatarData(data) {
-    if (!data) return '';
-    return new Date(data).toLocaleDateString('pt-BR');
 }
 
 function formatarData(data) {
