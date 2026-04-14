@@ -45,7 +45,7 @@
             const email = document.getElementById('email').value;
 
             try {
-                const res = await fetch('http://localhost:3000/admin/recuperar-senha', {
+                const res = await fetch('/admin/recuperar-senha', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email })
