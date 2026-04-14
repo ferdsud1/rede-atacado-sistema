@@ -7,9 +7,14 @@ import multer from "multer";
 const router = Router();
 const service = new SorteioService();
 
+// Validar variáveis de ambiente do Supabase
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    throw new Error('❌ Variáveis SUPABASE_URL e SUPABASE_ANON_KEY são obrigatórias');
+}
+
 const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY
 );
 
 const STORAGE_BUCKET = 'sorteios';

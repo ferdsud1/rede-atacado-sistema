@@ -1,7 +1,16 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { AdminService } from "../service/AdminService";
-// ✅ IMPORT DO MIDDLEWARE CENTRALIZADO
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
+import rateLimit from "express-rate-limit";
+
+// Rate limiter específico para rotas de autenticação (previne brute-force)
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 10, // máximo 10 tentativas por janela
+    message: { erro: 'Muitas tentativas. Tente novamente em 15 minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 const router = Router();
 const service = new AdminService();
@@ -10,8 +19,8 @@ const service = new AdminService();
 // ROTAS PÚBLICAS
 // ==========================================
 
-// POST /admin/cadastrar - Criar novo admin
-router.post("/cadastrar", async (req, res) => {
+// POST /admin/cadastrar - Criar novo admin (protegido: apenas admins autenticados)
+router.post("/cadastrar", authMiddleware, async (req: AuthRequest, res) => {
     try {
         const { nome, email, senha } = req.body;
 
@@ -27,8 +36,8 @@ router.post("/cadastrar", async (req, res) => {
     }
 });
 
-// POST /admin/login - Autenticar admin
-router.post("/login", async (req, res) => {
+// POST /admin/login - Autenticar admin (com rate limiting)
+router.post("/login", authLimiter, async (req, res) => {
     try {
         const { email, senha } = req.body;
 
@@ -44,8 +53,8 @@ router.post("/login", async (req, res) => {
     }
 });
 
-// POST /admin/recuperar-senha - Solicitar recuperação
-router.post("/recuperar-senha", async (req, res) => {
+// POST /admin/recuperar-senha - Solicitar recuperação (com rate limiting)
+router.post("/recuperar-senha", authLimiter, async (req, res) => {
     try {
         const { email } = req.body;
 
@@ -61,8 +70,8 @@ router.post("/recuperar-senha", async (req, res) => {
     }
 });
 
-// POST /admin/resetar-senha - Redefinir senha
-router.post("/resetar-senha", async (req, res) => {
+// POST /admin/resetar-senha - Redefinir senha (com rate limiting)
+router.post("/resetar-senha", authLimiter, async (req, res) => {
     try {
         const { token, novaSenha } = req.body;
 

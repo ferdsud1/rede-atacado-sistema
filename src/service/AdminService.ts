@@ -8,6 +8,17 @@ import { enviarEmailRecuperacao } from "../utils/email";
 
 const repo = new AdminRepository();
 
+// Validação de segurança do JWT_SECRET na inicialização
+const INSECURE_JWT_DEFAULTS = ['segredo_super_secreto_mude_isso', 'secret', 'jwt_secret', 'changeme'];
+if (process.env.JWT_SECRET && INSECURE_JWT_DEFAULTS.includes(process.env.JWT_SECRET)) {
+    console.warn('⚠️ AVISO DE SEGURANÇA: JWT_SECRET está usando um valor padrão inseguro. Altere imediatamente em produção!');
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('JWT_SECRET inseguro detectado em ambiente de produção. Defina um segredo forte.');
+    }
+}
+if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+    console.warn('⚠️ AVISO: JWT_SECRET deve ter pelo menos 32 caracteres para segurança adequada.');
+}
 export class AdminService {
 
     // ==========================================
@@ -134,6 +145,11 @@ export class AdminService {
         const tokenData = await repo.buscarTokenValido(token);
         if (!tokenData) {
             throw new Error("Token inválido ou expirado");
+        }
+
+        // Validar força da nova senha
+        if (!novaSenha || novaSenha.length < 6) {
+            throw new Error("A nova senha deve ter no mínimo 6 caracteres");
         }
 
         // Hash da nova senha

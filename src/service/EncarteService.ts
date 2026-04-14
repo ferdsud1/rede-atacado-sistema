@@ -9,9 +9,14 @@ export class EncarteService {
   private readonly STORAGE_BUCKET = 'encartes';
 
   constructor() {
+    // Validar variáveis de ambiente do Supabase
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+      throw new Error('❌ Variáveis SUPABASE_URL e SUPABASE_ANON_KEY são obrigatórias');
+    }
+
     this.supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
     );
   }
 
