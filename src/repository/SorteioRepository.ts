@@ -172,7 +172,7 @@ export class SorteioRepository {
             query = query.eq('telefone', telefone);
         }
         
-        const { data, error } = query.limit(1);
+        const { data, error } = await query.limit(1);
         
         if (error) return false;
         return data && data.length > 0;

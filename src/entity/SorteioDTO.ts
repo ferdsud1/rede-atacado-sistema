@@ -1,12 +1,12 @@
 export interface Sorteio {
     id: number;
     titulo: string;
-    descricao: string;
-    imagem_url: string;
+    descricao?: string;
+    imagem_url?: string;
     data_inicio: Date;
     data_fim: Date;
-    ativo: boolean;
-    criado_em: Date;
+    ativo?: boolean;
+    criado_em?: Date;
 }
 
 export interface CreateSorteioDTO {
@@ -30,10 +30,10 @@ export interface UpdateSorteioDTO {
 export interface SorteioResponseDTO {
     id: number;
     titulo: string;
-    descricao: string;
-    imagem_url: string;
+    descricao?: string;
+    imagem_url?: string;
     data_inicio: Date;
     data_fim: Date;
-    ativo: boolean;
-    criado_em: Date;
+    ativo?: boolean;
+    criado_em?: Date;
 }
