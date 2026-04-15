@@ -3,12 +3,16 @@ import { CreateSorteioDTO, UpdateSorteioDTO, SorteioResponseDTO, Sorteio } from 
 
 let supabase: SupabaseClient;
 
-function getSupabase() {
+function getSupabase(): SupabaseClient {
     if (!supabase) {
-        supabase = createClient(
-            process.env.SUPABASE_URL!,
-            process.env.SUPABASE_ANON_KEY!
-        );
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error('⚠️ Variáveis SUPABASE_URL e SUPABASE_ANON_KEY não configuradas!');
+        }
+        
+        supabase = createClient(supabaseUrl, supabaseKey);
     }
     return supabase;
 }

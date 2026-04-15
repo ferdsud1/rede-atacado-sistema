@@ -1,18 +1,21 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { CreateCategoriaDTO, UpdateCategoriaDTO, CategoriaResponseDTO } from "../entity/CategoriaDTO";
 
 let supabase: SupabaseClient;
 
-function getSupabase() {
+function getSupabase(): SupabaseClient {
     if (!supabase) {
-        supabase = createClient(
-            process.env.SUPABASE_URL!,
-            process.env.SUPABASE_ANON_KEY!
-        );
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error('⚠️ Variáveis SUPABASE_URL e SUPABASE_ANON_KEY não configuradas!');
+        }
+        
+        supabase = createClient(supabaseUrl, supabaseKey);
     }
     return supabase;
 }
-
-import { CreateCategoriaDTO, UpdateCategoriaDTO, CategoriaResponseDTO } from "../entity/CategoriaDTO";
 
 export class CategoriaRepository {
 

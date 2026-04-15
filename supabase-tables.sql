@@ -1,5 +1,30 @@
--- Script para criar tabelas no Supabase
+-- Script para criar todas as tabelas no Supabase
 -- Execute este código no SQL Editor do Supabase
+
+-- ==========================================
+-- TABELA DE ADMIN (LOGIN)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS admin (
+    id BIGSERIAL PRIMARY KEY,
+    nome TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    senha TEXT NOT NULL,
+    ativo BOOLEAN DEFAULT true,
+    criado_em TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    atualizado_em TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ==========================================
+-- TABELA DE RECUPERAÇÃO DE SENHA
+-- ==========================================
+CREATE TABLE IF NOT EXISTS recuperacao_senha (
+    id BIGSERIAL PRIMARY KEY,
+    admin_id BIGINT NOT NULL REFERENCES admin(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE,
+    expiracao TIMESTAMP WITH TIME ZONE NOT NULL,
+    usado BOOLEAN DEFAULT false,
+    criado_em TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- ==========================================
 -- TABELA DE CATEGORIAS
@@ -53,3 +78,9 @@ DROP INDEX IF EXISTS idx_participantes_sorteio_id;
 CREATE INDEX IF NOT EXISTS idx_categorias_ativo ON categorias(ativo);
 CREATE INDEX IF NOT EXISTS idx_sorteios_ativo ON sorteios(ativo);
 CREATE INDEX IF NOT EXISTS idx_participantes_sorteio_id ON participantes_sorteio(sorteio_id);
+
+-- ==========================================
+-- CRIAR USUÁRIO ADMIN PADRÃO
+-- ==========================================
+-- INSERT INTO admin (nome, email, senha)
+-- VALUES ('Administrador', 'admin@certoatacado.com', 'sua_senha_hash_aqui');
