@@ -1,100 +1,100 @@
-import { pool } from "../config/database";
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+let supabase: SupabaseClient;
+
+function getSupabase() {
+    if (!supabase) {
+        supabase = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_ANON_KEY!
+        );
+    }
+    return supabase;
+}
+
 import { CreateCategoriaDTO, UpdateCategoriaDTO, CategoriaResponseDTO } from "../entity/CategoriaDTO";
 
 export class CategoriaRepository {
 
     async listarTodas(): Promise<CategoriaResponseDTO[]> {
-        const result = await pool.query(
-            `SELECT * FROM categorias ORDER BY ordem ASC, nome ASC`
-        );
-        return result.rows;
+        const { data, error } = await getSupabase()
+            .from('categorias')
+            .select('*')
+            .order('ordem', { ascending: true })
+            .order('nome', { ascending: true });
+        
+        if (error) throw new Error(error.message);
+        return data || [];
     }
 
     async buscarPorId(id: number): Promise<CategoriaResponseDTO | null> {
-        const result = await pool.query(
-            "SELECT * FROM categorias WHERE id = $1",
-            [id]
-        );
-        return result.rows[0] || null;
+        const { data, error } = await getSupabase()
+            .from('categorias')
+            .select('*')
+            .eq('id', id)
+            .single();
+        
+        if (error) return null;
+        return data;
     }
 
     async buscarPorNome(nome: string): Promise<CategoriaResponseDTO | null> {
-        const result = await pool.query(
-            "SELECT * FROM categorias WHERE nome ILIKE $1",
-            [nome]
-        );
-        return result.rows[0] || null;
+        const { data, error } = await getSupabase()
+            .from('categorias')
+            .select('*')
+            .ilike('nome', nome)
+            .single();
+        
+        if (error) return null;
+        return data;
     }
 
     async criar(categoria: CreateCategoriaDTO): Promise<CategoriaResponseDTO> {
-        const result = await pool.query(
-            `INSERT INTO categorias 
-            (nome, descricao, cor, icone, ativo, ordem)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING *`,
-            [
-                categoria.nome,
-                categoria.descricao || null,
-                categoria.cor || '#ff6600',
-                categoria.icone || '🏷️',
-                categoria.ativo ?? true,
-                categoria.ordem ?? 0
-            ]
-        );
-        return result.rows[0];
+        const { data, error } = await getSupabase()
+            .from('categorias')
+            .insert({
+                nome: categoria.nome,
+                descricao: categoria.descricao || null,
+                cor: categoria.cor || '#ff6600',
+                icone: categoria.icone || '🏷️',
+                ativo: categoria.ativo ?? true,
+                ordem: categoria.ordem ?? 0
+            })
+            .select()
+            .single();
+        
+        if (error) throw new Error(error.message);
+        return data;
     }
 
     async atualizar(id: number, categoria: UpdateCategoriaDTO): Promise<CategoriaResponseDTO | null> {
-        const fields = [];
-        const values = [];
-        let paramCount = 1;
+        const updateData: any = { atualizado_em: new Date().toISOString() };
+        
+        if (categoria.nome !== undefined) updateData.nome = categoria.nome;
+        if (categoria.descricao !== undefined) updateData.descricao = categoria.descricao;
+        if (categoria.cor !== undefined) updateData.cor = categoria.cor;
+        if (categoria.icone !== undefined) updateData.icone = categoria.icone;
+        if (categoria.ativo !== undefined) updateData.ativo = categoria.ativo;
+        if (categoria.ordem !== undefined) updateData.ordem = categoria.ordem;
 
-        if (categoria.nome !== undefined) {
-            fields.push(`nome = $${paramCount++}`);
-            values.push(categoria.nome);
-        }
-        if (categoria.descricao !== undefined) {
-            fields.push(`descricao = $${paramCount++}`);
-            values.push(categoria.descricao);
-        }
-        if (categoria.cor !== undefined) {
-            fields.push(`cor = $${paramCount++}`);
-            values.push(categoria.cor);
-        }
-        if (categoria.icone !== undefined) {
-            fields.push(`icone = $${paramCount++}`);
-            values.push(categoria.icone);
-        }
-        if (categoria.ativo !== undefined) {
-            fields.push(`ativo = $${paramCount++}`);
-            values.push(categoria.ativo);
-        }
-        if (categoria.ordem !== undefined) {
-            fields.push(`ordem = $${paramCount++}`);
-            values.push(categoria.ordem);
-        }
-
-        if (fields.length === 0) {
-            return await this.buscarPorId(id);
-        }
-
-        values.push(id);
-        const query = `
-            UPDATE categorias 
-            SET ${fields.join(', ')}
-            WHERE id = $${paramCount} 
-            RETURNING *
-        `;
-
-        const result = await pool.query(query, values);
-        return result.rows[0] || null;
+        const { data, error } = await getSupabase()
+            .from('categorias')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+        
+        if (error) throw new Error(error.message);
+        return data;
     }
 
     async excluir(id: number): Promise<boolean> {
-        const result = await pool.query(
-            "DELETE FROM categorias WHERE id = $1",
-            [id]
-        );
-        return result.rowCount !== null && result.rowCount > 0;
+        const { error } = await getSupabase()
+            .from('categorias')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw new Error(error.message);
+        return true;
     }
 }

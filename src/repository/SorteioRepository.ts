@@ -1,214 +1,176 @@
-import { pool } from "../config/database";
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { CreateSorteioDTO, UpdateSorteioDTO, SorteioResponseDTO, Sorteio } from "../entity/SorteioDTO";
+
+let supabase: SupabaseClient;
+
+function getSupabase() {
+    if (!supabase) {
+        supabase = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_ANON_KEY!
+        );
+    }
+    return supabase;
+}
 
 export class SorteioRepository {
 
-    // Listar sorteios ativos
     async listarAtivos(): Promise<SorteioResponseDTO[]> {
-        try {
-            const result = await pool.query(
-                `SELECT id, titulo, descricao, imagem_url, data_inicio, data_fim, ativo 
-                FROM sorteios 
-                WHERE ativo = true 
-                AND data_fim >= CURRENT_DATE
-                ORDER BY data_inicio DESC`
-            );
-            return result.rows;
-        } catch (error) {
-            console.error('Erro ao listar sorteios ativos:', error);
-            throw error;
-        }
+        const hoje = new Date().toISOString().split('T')[0];
+        const { data, error } = await getSupabase()
+            .from('sorteios')
+            .select('id, titulo, descricao, imagem_url, data_inicio, data_fim, ativo')
+            .eq('ativo', true)
+            .gte('data_fim', hoje)
+            .order('data_inicio', { ascending: false });
+        
+        if (error) throw new Error(error.message);
+        return data || [];
     }
 
-    // Listar todos os sorteios (Admin) ✅ CORRIGIDO: sem comentário na query
     async listarTodos(): Promise<Sorteio[]> {
-        const result = await pool.query(
-            `SELECT id, titulo, descricao, imagem_url, data_inicio, data_fim, ativo 
-            FROM sorteios 
-            ORDER BY data_inicio DESC`
-        );
-        return result.rows;
+        const { data, error } = await getSupabase()
+            .from('sorteios')
+            .select('id, titulo, descricao, imagem_url, data_inicio, data_fim, ativo')
+            .order('data_inicio', { ascending: false });
+        
+        if (error) throw new Error(error.message);
+        return data || [];
     }
 
-    // Buscar sorteio por ID
     async buscarPorId(id: number): Promise<SorteioResponseDTO | null> {
-        try {
-            const result = await pool.query(
-                "SELECT * FROM sorteios WHERE id = $1",
-                [id]
-            );
-            return result.rows[0] || null;
-        } catch (error) {
-            console.error('Erro ao buscar sorteio por ID:', error);
-            throw error;
-        }
+        const { data, error } = await getSupabase()
+            .from('sorteios')
+            .select('*')
+            .eq('id', id)
+            .single();
+        
+        if (error) return null;
+        return data;
     }
 
-    // Criar sorteio
     async criar(sorteio: CreateSorteioDTO): Promise<SorteioResponseDTO> {
-        try {
-            const result = await pool.query(
-                `INSERT INTO sorteios 
-                (titulo, descricao, imagem_url, data_inicio, data_fim, ativo)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING *`,
-                [
-                    sorteio.titulo,
-                    sorteio.descricao || null,
-                    sorteio.imagem_url,
-                    sorteio.data_inicio,
-                    sorteio.data_fim,
-                    sorteio.ativo ?? true
-                ]
-            );
-            return result.rows[0];
-        } catch (error) {
-            console.error('Erro ao criar sorteio:', error);
-            throw error;
-        }
+        const { data, error } = await getSupabase()
+            .from('sorteios')
+            .insert({
+                titulo: sorteio.titulo,
+                descricao: sorteio.descricao || null,
+                imagem_url: sorteio.imagem_url,
+                data_inicio: sorteio.data_inicio,
+                data_fim: sorteio.data_fim,
+                ativo: sorteio.ativo ?? true
+            })
+            .select()
+            .single();
+        
+        if (error) throw new Error(error.message);
+        return data;
     }
 
-    // Atualizar sorteio
     async atualizar(id: number, sorteio: UpdateSorteioDTO): Promise<SorteioResponseDTO | null> {
-        try {
-            const fields = [];
-            const values = [];
-            let paramCount = 1;
+        const updateData: any = { atualizado_em: new Date().toISOString() };
+        
+        if (sorteio.titulo !== undefined) updateData.titulo = sorteio.titulo;
+        if (sorteio.descricao !== undefined) updateData.descricao = sorteio.descricao;
+        if (sorteio.imagem_url !== undefined) updateData.imagem_url = sorteio.imagem_url;
+        if (sorteio.data_inicio !== undefined) updateData.data_inicio = sorteio.data_inicio;
+        if (sorteio.data_fim !== undefined) updateData.data_fim = sorteio.data_fim;
+        if (sorteio.ativo !== undefined) updateData.ativo = sorteio.ativo;
 
-            if (sorteio.titulo !== undefined) {
-                fields.push(`titulo = $${paramCount++}`);
-                values.push(sorteio.titulo);
-            }
-            if (sorteio.descricao !== undefined) {
-                fields.push(`descricao = $${paramCount++}`);
-                values.push(sorteio.descricao);
-            }
-            if (sorteio.imagem_url !== undefined) {
-                fields.push(`imagem_url = $${paramCount++}`);
-                values.push(sorteio.imagem_url);
-            }
-            if (sorteio.data_inicio !== undefined) {
-                fields.push(`data_inicio = $${paramCount++}`);
-                values.push(sorteio.data_inicio);
-            }
-            if (sorteio.data_fim !== undefined) {
-                fields.push(`data_fim = $${paramCount++}`);
-                values.push(sorteio.data_fim);
-            }
-            if (sorteio.ativo !== undefined) {
-                fields.push(`ativo = $${paramCount++}`);
-                values.push(sorteio.ativo);
-            }
-
-            if (fields.length === 0) {
-                return await this.buscarPorId(id);
-            }
-
-            values.push(id);
-            const query = `
-                UPDATE sorteios 
-                SET ${fields.join(', ')}
-                WHERE id = $${paramCount} 
-                RETURNING *
-            `;
-
-            const result = await pool.query(query, values);
-            return result.rows[0] || null;
-        } catch (error) {
-            console.error('Erro ao atualizar sorteio:', error);
-            throw error;
-        }
+        const { data, error } = await getSupabase()
+            .from('sorteios')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+        
+        if (error) throw new Error(error.message);
+        return data;
     }
 
-    // Excluir sorteio
     async excluir(id: number): Promise<boolean> {
-        try {
-            // Excluir participantes primeiro
-            await pool.query("DELETE FROM participantes_sorteio WHERE sorteio_id = $1", [id]);
-            const result = await pool.query(
-                "DELETE FROM sorteios WHERE id = $1",
-                [id]
-            );
-            return result.rowCount !== null && result.rowCount > 0;
-        } catch (error) {
-            console.error('Erro ao excluir sorteio:', error);
-            throw error;
-        }
+        // Excluir participantes primeiro
+        await getSupabase()
+            .from('participantes_sorteio')
+            .delete()
+            .eq('sorteio_id', id);
+        
+        const { error } = await getSupabase()
+            .from('sorteios')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw new Error(error.message);
+        return true;
     }
 
     // ==========================================
     // PARTICIPANTES
     // ==========================================
 
-    async criarTabelaParticipantes(): Promise<void> {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS participantes_sorteio (
-                id SERIAL PRIMARY KEY,
-                sorteio_id INTEGER NOT NULL REFERENCES sorteios(id) ON DELETE CASCADE,
-                nome VARCHAR(255) NOT NULL,
-                telefone VARCHAR(50),
-                criado_em TIMESTAMP DEFAULT NOW()
-            )
-        `);
-    }
-
     async adicionarParticipante(sorteioId: number, nome: string, telefone: string | null): Promise<any> {
-        // Garantir que a tabela existe
-        await this.criarTabelaParticipantes();
-
-        const result = await pool.query(
-            `INSERT INTO participantes_sorteio (sorteio_id, nome, telefone)
-             VALUES ($1, $2, $3)
-             RETURNING *`,
-            [sorteioId, nome, telefone]
-        );
-        return result.rows[0];
+        const { data, error } = await getSupabase()
+            .from('participantes_sorteio')
+            .insert({
+                sorteio_id: sorteioId,
+                nome: nome,
+                telefone: telefone
+            })
+            .select()
+            .single();
+        
+        if (error) throw new Error(error.message);
+        return data;
     }
 
     async listarParticipantes(sorteioId: number): Promise<any[]> {
-        // Garantir que a tabela existe
-        await this.criarTabelaParticipantes();
-
-        const result = await pool.query(
-            `SELECT * FROM participantes_sorteio
-             WHERE sorteio_id = $1
-             ORDER BY criado_em ASC`,
-            [sorteioId]
-        );
-        return result.rows;
+        const { data, error } = await getSupabase()
+            .from('participantes_sorteio')
+            .select('*')
+            .eq('sorteio_id', sorteioId)
+            .order('criou_em', { ascending: true });
+        
+        if (error) throw new Error(error.message);
+        return data || [];
     }
 
     async contarParticipantes(sorteioId: number): Promise<number> {
-        await this.criarTabelaParticipantes();
-
-        const result = await pool.query(
-            `SELECT COUNT(*) as total FROM participantes_sorteio WHERE sorteio_id = $1`,
-            [sorteioId]
-        );
-        return parseInt(result.rows[0].total);
+        const { count, error } = await getSupabase()
+            .from('participantes_sorteio')
+            .select('*', { count: 'exact', head: true })
+            .eq('sorteio_id', sorteioId);
+        
+        if (error) throw new Error(error.message);
+        return count || 0;
     }
 
     async buscarParticipanteAleatorio(sorteioId: number): Promise<any | null> {
-        const result = await pool.query(
-            `SELECT * FROM participantes_sorteio
-             WHERE sorteio_id = $1
-             ORDER BY RANDOM()
-             LIMIT 1`,
-            [sorteioId]
-        );
-        return result.rows[0] || null;
+        const { data, error } = await getSupabase()
+            .from('participantes_sorteio')
+            .select('*')
+            .eq('sorteio_id', sorteioId);
+        
+        if (error || !data || data.length === 0) return null;
+        
+        // Random em memória (Supabase não tem RANDOM())
+        const randomIndex = Math.floor(Math.random() * data.length);
+        return data[randomIndex];
     }
 
     async verificarParticipacao(sorteioId: number, nome: string, telefone: string | null): Promise<boolean> {
-        await this.criarTabelaParticipantes();
-
-        const result = await pool.query(
-            `SELECT id FROM participantes_sorteio
-             WHERE sorteio_id = $1 AND LOWER(nome) = LOWER($2)
-             ${telefone ? 'AND telefone = $3' : ''}
-             LIMIT 1`,
-            telefone ? [sorteioId, nome, telefone] : [sorteioId, nome]
-        );
-        return result.rows.length > 0;
+        let query = getSupabase()
+            .from('participantes_sorteio')
+            .select('id')
+            .eq('sorteio_id', sorteioId)
+            .ilike('nome', nome);
+        
+        if (telefone) {
+            query = query.eq('telefone', telefone);
+        }
+        
+        const { data, error } = query.limit(1);
+        
+        if (error) return false;
+        return data && data.length > 0;
     }
 }
