@@ -12,7 +12,7 @@ const supabase = createClient(
     process.env.SUPABASE_ANON_KEY!
 );
 
-const STORAGE_BUCKET = 'sorteios';
+const STORAGE_BUCKET = 'encartes';
 const storage = multer.memoryStorage();
 
 const upload = multer({
