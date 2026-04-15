@@ -457,19 +457,19 @@ async function carregarCategorias() {
             return;
         }
         
-        tbody.innerHTML = categorias.map(c => `
-            <tr>
-                <td><span style="font-size:24px">${c.icone || '🏷️'}</span></td>
-                <td><strong>${c.nome}</strong></td>
-                <td>${c.descricao || '-'}</td>
-                <td><span style="display:inline-block;width:20px;height:20px;background:${c.cor || '#ff6600'};border-radius:4px;"></span></td>
-                <td><span class="status-badge ${c.ativo ? 'status-active' : 'status-inactive'}">${c.ativo ? 'Ativo' : 'Inativo'}</span></td>
-                <td>
-                    <button class="btn-icon btn-edit" onclick="editarCategoria(${c.id})" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon btn-delete" onclick="excluirCategoria(${c.id})" title="Excluir"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        `.join('');
+        tbody.innerHTML = categorias.map(c => 
+            '<tr>' +
+                '<td><span style="font-size:24px">' + (c.icone || '🏷️') + '</span></td>' +
+                '<td><strong>' + c.nome + '</strong></td>' +
+                '<td>' + (c.descricao || '-') + '</td>' +
+                '<td><span style="display:inline-block;width:20px;height:20px;background:' + (c.cor || '#ff6600') + ';border-radius:4px;"></span></td>' +
+                '<td><span class="status-badge ' + (c.ativo ? 'status-active' : 'status-inactive') + '">' + (c.ativo ? 'Ativo' : 'Inativo') + '</span></td>' +
+                '<td>' +
+                    '<button class="btn-icon btn-edit" onclick="editarCategoria(' + c.id + ')" title="Editar"><i class="fas fa-edit"></i></button>' +
+                    '<button class="btn-icon btn-delete" onclick="excluirCategoria(' + c.id + ')" title="Excluir"><i class="fas fa-trash"></i></button>' +
+                '</td>' +
+            '</tr>'
+        ).join('');
         
     } catch (err) {
         console.error('❌ Erro ao carregar categorias:', err);
