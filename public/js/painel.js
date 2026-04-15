@@ -907,6 +907,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Submit do formulário de categorias
+    const categoriaForm = document.getElementById('categoriaForm');
+    if (categoriaForm) {
+        categoriaForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await salvarCategoria();
+        });
+    }
+    
     // Preview de imagem - Sorteio
     const sorteioFile = document.getElementById('sorteioImagem');
     if (sorteioFile) {
