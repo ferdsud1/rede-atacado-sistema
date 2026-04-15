@@ -559,18 +559,23 @@ async function excluirCategoria(id) {
 }
 
 function limparFormCategoria() {
-    document.getElementById('categoriaId').value = '';
-    document.getElementById('categoriaNome').value = '';
-    document.getElementById('categoriaDescricao').value = '';
-    document.getElementById('categoriaCor').value = '#ff6600';
-    document.getElementById('categoriaIcone').value = '🏷️';
-    document.getElementById('categoriaAtivo').checked = true;
-    if (document.getElementById('categoriaFormTitle')) {
-        document.getElementById('categoriaFormTitle').textContent = 'Nova Categoria';
-    }
-    if (document.getElementById('categoriaSubmitBtn')) {
-        document.getElementById('categoriaSubmitBtn').textContent = 'Criar Categoria';
-    }
+    const idEl = document.getElementById('categoriaId');
+    const nomeEl = document.getElementById('categoriaNome');
+    const descEl = document.getElementById('categoriaDescricao');
+    const corEl = document.getElementById('categoriaCor');
+    const iconeEl = document.getElementById('categoriaIcone');
+    const ativoEl = document.getElementById('categoriaAtivo');
+    const titleEl = document.getElementById('categoriaFormTitle');
+    const submitEl = document.getElementById('categoriaSubmitBtn');
+    
+    if (idEl) idEl.value = '';
+    if (nomeEl) nomeEl.value = '';
+    if (descEl) descEl.value = '';
+    if (corEl) corEl.value = '#ff6600';
+    if (iconeEl) iconeEl.value = '🏷️';
+    if (ativoEl) ativoEl.checked = true;
+    if (titleEl) titleEl.textContent = 'Nova Categoria';
+    if (submitEl) submitEl.textContent = 'Criar Categoria';
 }
 
 // ============================================================================
