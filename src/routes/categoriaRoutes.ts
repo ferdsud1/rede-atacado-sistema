@@ -133,4 +133,27 @@ router.delete("/excluir/:id", authMiddleware, async (req: AuthRequest, res) => {
     }
 });
 
+// GET /categorias/buscar/:id - Buscar categoria por ID (Admin)
+router.get("/buscar/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+        const id = parseInt(req.params.id);
+
+        if (isNaN(id)) {
+            res.status(400).json({ erro: "ID inválido" });
+            return;
+        }
+
+        const categoria = await service.buscarPorId(id);
+        if (!categoria) {
+            res.status(404).json({ erro: "Categoria não encontrada" });
+            return;
+        }
+
+        res.json(categoria);
+    } catch (err: any) {
+        console.error("Erro ao buscar categoria:", err);
+        res.status(400).json({ erro: err.message });
+    }
+});
+
 export default router;

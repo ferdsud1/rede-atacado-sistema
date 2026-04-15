@@ -402,12 +402,10 @@ export class EncarteService {
     try {
       console.log('📥 Criando encarte:', data);
       
-      const imagemUrls: string[] = [];
-
-      for (const arquivo of arquivos) {
-        const url = await this.uploadImagem(arquivo, data.titulo);
-        imagemUrls.push(url);
-      }
+      // ✅ OTIMIZAÇÃO: Upload em paralelo para melhorar velocidade
+      const imagemUrls = await Promise.all(
+        arquivos.map(arquivo => this.uploadImagem(arquivo, data.titulo))
+      );
 
       const insertData: any = {
         titulo: data.titulo,

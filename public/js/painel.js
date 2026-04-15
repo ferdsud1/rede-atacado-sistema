@@ -423,9 +423,150 @@ async function carregarSelectCategorias() {
 // CATEGORIAS - CRUD
 // ============================================================================
 
+// ============================================================================
+// CATEGORIAS
+// ============================================================================
+
 async function carregarCategorias() {
-    // Placeholder - implementar conforme necessidade
-    console.log('carregarCategorias chamado');
+    const tbody = document.getElementById('categoriasList');
+    if (!tbody) return;
+    
+    const section = document.getElementById('section-categorias');
+    if (section && section.style.display === 'none') return;
+    
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Carregando...</td></tr>';
+    
+    try {
+        const res = await fetch('/categorias/todas', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.erro || `Erro ${res.status}`);
+        }
+        
+        const categorias = await res.json();
+        
+        if (!categorias || categorias.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:40px;color:#999">Nenhuma categoria cadastrada</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = categorias.map(c => `
+            <tr>
+                <td><span style="font-size:24px">${c.icone || '🏷️'}</span></td>
+                <td><strong>${c.nome}</strong></td>
+                <td>${c.descricao || '-'}</td>
+                <td><span style="display:inline-block;width:20px;height:20px;background:${c.cor || '#ff6600'};border-radius:4px;"></span></td>
+                <td><span class="status-badge ${c.ativo ? 'status-active' : 'status-inactive'}">${c.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                <td>
+                    <button class="btn-icon btn-edit" onclick="editarCategoria(${c.id})" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon btn-delete" onclick="excluirCategoria(${c.id})" title="Excluir"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `.join('');
+        
+    } catch (err) {
+        console.error('❌ Erro ao carregar categorias:', err);
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="color:#dc3545;padding:20px">Erro: ${err.message}</td></tr>`;
+    }
+}
+
+async function salvarCategoria() {
+    const id = document.getElementById('categoriaId')?.value;
+    
+    const nome = document.getElementById('categoriaNome').value?.trim();
+    const descricao = document.getElementById('categoriaDescricao')?.value?.trim();
+    const cor = document.getElementById('categoriaCor')?.value || '#ff6600';
+    const icone = document.getElementById('categoriaIcone')?.value || '🏷️';
+    const ativo = document.getElementById('categoriaAtivo')?.checked !== false;
+    
+    if (!nome || nome.length < 2) {
+        alert('Nome deve ter pelo menos 2 caracteres');
+        return;
+    }
+    
+    try {
+        const url = id ? `/categorias/atualizar/${id}` : '/categorias/criar';
+        const method = id ? 'PUT' : 'POST';
+        
+        const res = await fetch(url, {
+            method,
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ nome, descricao, cor, icone, ativo })
+        });
+        
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.erro || `Erro ${res.status}`);
+        }
+        
+        alert(id ? '✅ Categoria atualizada!' : '✅ Categoria criada!');
+        limparFormCategoria();
+        carregarCategorias();
+    } catch (err) {
+        console.error('❌ Erro ao salvar categoria:', err);
+        alert('Erro: ' + err.message);
+    }
+}
+
+function editarCategoria(id) {
+    fetch(`/categorias/buscar/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(c => {
+        document.getElementById('categoriaId').value = c.id;
+        document.getElementById('categoriaNome').value = c.nome;
+        document.getElementById('categoriaDescricao').value = c.descricao || '';
+        document.getElementById('categoriaCor').value = c.cor || '#ff6600';
+        document.getElementById('categoriaIcone').value = c.icone || '🏷️';
+        document.getElementById('categoriaAtivo').checked = c.ativo !== false;
+        document.getElementById('categoriaFormTitle').textContent = 'Editar Categoria';
+        document.getElementById('categoriaSubmitBtn').textContent = 'Atualizar';
+    })
+    .catch(err => alert('Erro ao buscar categoria: ' + err.message));
+}
+
+async function excluirCategoria(id) {
+    if (!confirm('Tem certeza que deseja excluir esta categoria?')) return;
+    
+    try {
+        const res = await fetch(`/categorias/excluir/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.erro || `Erro ${res.status}`);
+        }
+        
+        alert('✅ Categoria excluída!');
+        carregarCategorias();
+    } catch (err) {
+        console.error('❌ Erro ao excluir categoria:', err);
+        alert('Erro: ' + err.message);
+    }
+}
+
+function limparFormCategoria() {
+    document.getElementById('categoriaId').value = '';
+    document.getElementById('categoriaNome').value = '';
+    document.getElementById('categoriaDescricao').value = '';
+    document.getElementById('categoriaCor').value = '#ff6600';
+    document.getElementById('categoriaIcone').value = '🏷️';
+    document.getElementById('categoriaAtivo').checked = true;
+    if (document.getElementById('categoriaFormTitle')) {
+        document.getElementById('categoriaFormTitle').textContent = 'Nova Categoria';
+    }
+    if (document.getElementById('categoriaSubmitBtn')) {
+        document.getElementById('categoriaSubmitBtn').textContent = 'Criar Categoria';
+    }
 }
 
 // ============================================================================
