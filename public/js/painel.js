@@ -435,15 +435,19 @@ async function carregarCategorias() {
     if (section && section.style.display === 'none') return;
     
     tbody.innerHTML = '<tr><td colspan="6" class="text-center">Carregando...</td></tr>';
+    console.log('🔄 Carregando categorias...');
     
     try {
         const res = await fetch('/categorias/todas', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
+        console.log('📡 Status categorias:', res.status);
+        
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err.erro || `Erro ${res.status}`);
+            console.error('❌ Erro categorias:', err);
+            throw new Error(err.erro || err.message || `Erro ${res.status}`);
         }
         
         const categorias = await res.json();
@@ -581,15 +585,19 @@ async function carregarSorteios() {
     if (section && section.style.display === 'none') return;
     
     tbody.innerHTML = '<tr><td colspan="5" class="text-center">Carregando...</td></tr>';
+    console.log('🔄 Carregando sorteios...');
     
     try {
         const res = await fetch('/sorteios/listar', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
+        console.log('📡 Status sorteios:', res.status);
+        
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err.erro || `Erro ${res.status}`);
+            console.error('❌ Erro sorteios:', err);
+            throw new Error(err.erro || err.message || `Erro ${res.status}`);
         }
         
         const sorteios = await res.json();
