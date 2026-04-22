@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
-import { resend, EMAIL_FROM } from "../utils/email";
+import { resend, EMAIL_FROM, classificarErroEmail } from "../utils/email";
 
 const router = Router();
 
@@ -48,8 +48,9 @@ router.post("/fale-conosco", async (req: Request, res: Response) => {
 
         res.json({ sucesso: true });
     } catch (error: any) {
-        console.error("Erro ao enviar email:", error);
-        res.status(500).json({ erro: "Erro ao enviar mensagem. Tente novamente." });
+        const mensagemErro = classificarErroEmail(error);
+        console.error("Erro ao enviar email (fale-conosco):", mensagemErro, error);
+        res.status(500).json({ erro: mensagemErro });
     }
 });
 
@@ -87,8 +88,9 @@ router.post("/trabalhe-conosco", upload.single("curriculo"), async (req: Request
 
         res.json({ sucesso: true });
     } catch (error: any) {
-        console.error("Erro ao enviar candidatura:", error);
-        res.status(500).json({ erro: error.message || "Erro ao enviar candidatura." });
+        const mensagemErro = classificarErroEmail(error);
+        console.error("Erro ao enviar candidatura (trabalhe-conosco):", mensagemErro, error);
+        res.status(500).json({ erro: mensagemErro });
     }
 });
 
