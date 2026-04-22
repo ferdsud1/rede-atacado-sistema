@@ -1,91 +1,99 @@
 import { AdminRepository } from "../repository/AdminRepository";
 import { CreateAdminDTO, LoginDTO, AdminResponseDTO, AuthResponseDTO } from "../entity/AdminDTO";
 import { createAdminSchema, loginSchema } from "../utils/validations";
+import { AppError } from "../utils/AppError";
+import { StatusCodes } from "http-status-codes";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as crypto from "crypto";
 import { enviarEmailRecuperacao } from "../utils/email";
 
-const repo = new AdminRepository();
-
 export class AdminService {
-
-    // ==========================================
-    // CADASTRO
-    // ==========================================
+    private readonly repo = new AdminRepository();
 
     async cadastrar(data: CreateAdminDTO): Promise<AdminResponseDTO> {
-        const validated = createAdminSchema.parse(data);
+        try {
+            const validated = createAdminSchema.parse(data);
 
-        const existe = await repo.buscarPorEmail(validated.email);
-        if (existe) {
-            throw new Error("E-mail já cadastrado");
+            const existe = await this.repo.buscarPorEmail(validated.email);
+            if (existe) {
+                throw new AppError("E-mail já cadastrado", StatusCodes.CONFLICT);
+            }
+
+            const hash = await bcrypt.hash(validated.senha, 12);
+
+            return await this.repo.criar({
+                nome: validated.nome,
+                email: validated.email,
+                senha: hash,
+            });
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao cadastrar admin",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
         }
-
-        const hash = await bcrypt.hash(validated.senha, 12);
-
-        return await repo.criar({
-            nome: validated.nome,
-            email: validated.email,
-            senha: hash,
-        });
     }
-
-    // ==========================================
-    // LOGIN
-    // ==========================================
 
     async login(data: LoginDTO): Promise<AuthResponseDTO> {
-        const validated = loginSchema.parse(data);
+        try {
+            const validated = loginSchema.parse(data);
 
-        const admin = await repo.buscarPorEmail(validated.email);
-        
-        if (!admin) {
-            throw new Error("E-mail ou senha inválidos");
+            const admin = await this.repo.buscarPorEmail(validated.email);
+            if (!admin) {
+                throw new AppError("E-mail ou senha inválidos", StatusCodes.UNAUTHORIZED);
+            }
+
+            const senhaValida = await bcrypt.compare(validated.senha, admin.senha);
+            if (!senhaValida) {
+                throw new AppError("E-mail ou senha inválidos", StatusCodes.UNAUTHORIZED);
+            }
+
+            const jwtSecret = process.env.JWT_SECRET;
+            if (!jwtSecret) {
+                throw new AppError("JWT_SECRET não configurado no ambiente", StatusCodes.INTERNAL_SERVER_ERROR);
+            }
+
+            const token = jwt.sign(
+                { id: admin.id, email: admin.email },
+                jwtSecret,
+                { expiresIn: process.env.JWT_EXPIRES_IN || "7d" } as jwt.SignOptions
+            );
+
+            const adminResponse: AdminResponseDTO = {
+                id: admin.id!,
+                nome: admin.nome,
+                email: admin.email,
+                criado_em: admin.criado_em || new Date(),
+            };
+
+            return { admin: adminResponse, token };
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao realizar login",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
         }
-
-        const senhaValida = await bcrypt.compare(validated.senha, admin.senha);
-        if (!senhaValida) {
-            throw new Error("E-mail ou senha inválidos");
-        }
-
-        const jwtSecret = process.env.JWT_SECRET;
-        if (!jwtSecret) {
-            throw new Error("JWT_SECRET não configurado no ambiente");
-        }
-
-       const token = jwt.sign(
-    { id: admin.id, email: admin.email },
-    jwtSecret,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" } as jwt.SignOptions
-);
-
-        const adminResponse: AdminResponseDTO = {
-            id: admin.id!,
-            nome: admin.nome,
-            email: admin.email,
-            criado_em: admin.criado_em || new Date(),
-        };
-
-        return { admin: adminResponse, token };
     }
-
-    // ==========================================
-    // VALIDAR TOKEN
-    // ==========================================
 
     async validarToken(token: string): Promise<AdminResponseDTO> {
         try {
             const jwtSecret = process.env.JWT_SECRET;
             if (!jwtSecret) {
-                throw new Error("JWT_SECRET não configurado");
+                throw new AppError("JWT_SECRET não configurado", StatusCodes.INTERNAL_SERVER_ERROR);
             }
 
             const decoded = jwt.verify(token, jwtSecret) as { id: number; email: string };
-            
-            const admin = await repo.buscarPorId(decoded.id);
+
+            const admin = await this.repo.buscarPorId(decoded.id);
             if (!admin) {
-                throw new Error("Admin não encontrado");
+                throw new AppError("Admin não encontrado", StatusCodes.NOT_FOUND);
             }
 
             return {
@@ -95,69 +103,85 @@ export class AdminService {
                 criado_em: admin.criado_em || new Date(),
             };
         } catch (error) {
-            throw new Error("Token inválido ou expirado");
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Token inválido ou expirado",
+                StatusCodes.UNAUTHORIZED,
+                undefined,
+                error
+            );
         }
     }
 
-    // ==========================================
-    // RECUPERAÇÃO DE SENHA
-    // ==========================================
-
-       async solicitarRecuperacaoSenha(email: string): Promise<{ mensagem: string }> {
-        const admin = await repo.buscarPorEmail(email);
-        
-        // Por segurança, sempre retorna a mesma mensagem (evita enumeração de emails)
+    async solicitarRecuperacaoSenha(email: string): Promise<{ mensagem: string }> {
         const msgSegura = "Se o e-mail estiver cadastrado, você receberá um link de recuperação.";
 
-        if (!admin) return { mensagem: msgSegura };
-
-        // Gera token seguro e expiração (1 hora)
-        const token = crypto.randomBytes(32).toString("hex");
-        const expiracao = new Date(Date.now() + 3600000);
-
-        // Salva no banco
-        await repo.criarTokenRecuperacao(admin.id!, token, expiracao);
-
-        // Envia email
         try {
-            await enviarEmailRecuperacao(email, token);
-        } catch (error) {
-            console.error("Erro ao enviar email:", error);
-            // Falha no email não deve quebrar o fluxo, mas logamos
-        }
+            const admin = await this.repo.buscarPorEmail(email);
+            if (!admin) return { mensagem: msgSegura };
 
-        return { mensagem: msgSegura };
+            const token = crypto.randomBytes(32).toString("hex");
+            const expiracao = new Date(Date.now() + 3600000);
+
+            await this.repo.criarTokenRecuperacao(admin.id!, token, expiracao);
+
+            try {
+                await enviarEmailRecuperacao(email, token);
+            } catch (error) {
+                console.error("Erro ao enviar email:", error);
+            }
+
+            return { mensagem: msgSegura };
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao solicitar recuperação de senha",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
 
     async resetarSenha(token: string, novaSenha: string): Promise<{ mensagem: string }> {
-        // Busca token válido (não usado e não expirado)
-        const tokenData = await repo.buscarTokenValido(token);
-        if (!tokenData) {
-            throw new Error("Token inválido ou expirado");
+        try {
+            const tokenData = await this.repo.buscarTokenValido(token);
+            if (!tokenData) {
+                throw new AppError("Token inválido ou expirado", StatusCodes.BAD_REQUEST);
+            }
+
+            const hashedSenha = await bcrypt.hash(novaSenha, 12);
+            await this.repo.atualizar(tokenData.admin_id, { senha: hashedSenha });
+            await this.repo.marcarTokenComoUsado(token);
+
+            return { mensagem: "Senha redefinida com sucesso!" };
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao resetar senha",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
         }
-
-        // Hash da nova senha
-        const hashedSenha = await bcrypt.hash(novaSenha, 12);
-
-        // Atualiza senha no banco
-        await repo.atualizar(tokenData.admin_id, { senha: hashedSenha });
-
-        // Invalida token
-        await repo.marcarTokenComoUsado(token);
-
-        return { mensagem: "Senha redefinida com sucesso!" };
     }
 
-    // ==========================================
-    // EXCLUIR ADMIN
-    // ==========================================
-
     async excluir(id: number): Promise<{ mensagem: string }> {
-        const excluiu = await repo.excluir(id);
-        if (!excluiu) {
-            throw new Error("Admin não encontrado");
-        }
+        try {
+            const excluiu = await this.repo.excluir(id);
+            if (!excluiu) {
+                throw new AppError("Admin não encontrado", StatusCodes.NOT_FOUND);
+            }
 
-        return { mensagem: "Admin excluído com sucesso!" };
+            return { mensagem: "Admin excluído com sucesso!" };
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao excluir admin",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
 }

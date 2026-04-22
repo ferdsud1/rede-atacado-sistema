@@ -1,41 +1,53 @@
 import { EmpresaRepository } from "../repository/EmpresaRepository";
 import { Empresa, EmpresaResponseDTO } from "../entity/EmpresaDTO";
-
-const repo = new EmpresaRepository();
+import { AppError } from "../utils/AppError";
+import { StatusCodes } from "http-status-codes";
 
 export class EmpresaService {
+    private readonly repo = new EmpresaRepository();
 
-    // ==========================================
-    // LEITURA
-    // ==========================================
-
-    // Buscar dados da empresa (Site público)
     async buscarDados(): Promise<EmpresaResponseDTO | null> {
-        return await repo.buscarDados();
+        try {
+            return await this.repo.buscarDados();
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao buscar dados da empresa",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
 
-    // ==========================================
-    // ATUALIZAÇÃO
-    // ==========================================
-
-    // Atualizar dados da empresa (Admin)
     async atualizar(id: number, dados: Partial<Empresa>): Promise<EmpresaResponseDTO> {
-        // Verificar se empresa existe
-        const existente = await repo.buscarDados();
-        if (!existente) {
-            throw new Error("Empresa não encontrada");
-        }
+        try {
+            const existente = await this.repo.buscarDados();
+            if (!existente) {
+                throw new AppError("Empresa não encontrada", StatusCodes.NOT_FOUND);
+            }
 
-        // Validar dados básicos
-        if (dados.nome && dados.nome.trim().length < 3) {
-            throw new Error("Nome da empresa deve ter no mínimo 3 caracteres");
-        }
+            if (dados.nome && dados.nome.trim().length < 3) {
+                throw new AppError(
+                    "Nome da empresa deve ter no mínimo 3 caracteres",
+                    StatusCodes.BAD_REQUEST
+                );
+            }
 
-        const atualizado = await repo.atualizar(id, dados);
-        if (!atualizado) {
-            throw new Error("Falha ao atualizar dados da empresa");
-        }
+            const atualizado = await this.repo.atualizar(id, dados);
+            if (!atualizado) {
+                throw new AppError("Falha ao atualizar dados da empresa", StatusCodes.INTERNAL_SERVER_ERROR);
+            }
 
-        return atualizado;
+            return atualizado;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(
+                "Erro ao atualizar empresa",
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                undefined,
+                error
+            );
+        }
     }
 }
