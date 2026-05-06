@@ -3,38 +3,37 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Validação das variáveis de ambiente
-const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
-for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-        throw new Error(`❌ Variável de ambiente ausente: ${envVar}`);
-    }
-}
+// PostgreSQL é OPCIONAL - só conecta se variáveis existirem
+const dbVars = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+const hasDbVars = dbVars.every(v => process.env[v]);
 
-export const pool = new Pool({
+export const pool = hasDbVars ? new Pool({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    max: 20,                    // Máximo de conexões simultâneas
-    idleTimeoutMillis: 30000,   // Fecha conexões ociosas após 30s
-    connectionTimeoutMillis: 2000, // Timeout de conexão (2s)
-});
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+}) : null;
 
-// Listener de sucesso na conexão
-pool.on('connect', () => {
-    console.log('✅ Nova conexão estabelecida com o banco de dados');
-});
+if (pool) {
+    pool.on('connect', () => {
+        console.log('✅ Nova conexão estabelecida com o banco de dados');
+    });
 
-// Listener de erros
-pool.on('error', (err) => {
-    console.error('❌ Erro inesperado no pool do banco de dados:', err);
-    process.exit(-1); // Encerra o processo para evitar comportamento estranho
-});
+    pool.on('error', (err) => {
+        console.error('❌ Erro inesperado no pool do banco de dados:', err);
+    });
+}
 
 // Função para testar a conexão ao iniciar
 export async function testConnection(): Promise<void> {
+    if (!pool) {
+        console.log('ℹ️ PostgreSQL não configurado - usando apenas Supabase');
+        return;
+    }
     try {
         const client = await pool.connect();
         console.log('🟢 Banco de dados conectado e pronto!');

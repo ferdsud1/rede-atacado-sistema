@@ -1,34 +1,57 @@
-import { pool } from "../config/database";
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Empresa, EmpresaResponseDTO } from "../entity/EmpresaDTO";
+
+let supabase: SupabaseClient;
+
+function getSupabase(): SupabaseClient {
+    if (!supabase) {
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error('⚠️ Variáveis SUPABASE_URL e SUPABASE_ANON_KEY não configuradas!');
+        }
+        
+        supabase = createClient(supabaseUrl, supabaseKey);
+    }
+    return supabase;
+}
 
 export class EmpresaRepository {
 
     // Buscar dados da empresa (primeiro registro), cria registro padrão se não existir
     async buscarDados(): Promise<EmpresaResponseDTO | null> {
         try {
-            const result = await pool.query(
-                "SELECT * FROM empresa LIMIT 1"
-            );
+            const { data, error } = await getSupabase()
+                .from('empresa')
+                .select('*')
+                .limit(1)
+                .single();
 
-            if (result.rows[0]) {
-                return result.rows[0];
+            if (error && error.code !== 'PGRST116') {
+                throw error;
+            }
+
+            if (data) {
+                return data;
             }
 
             // Auto-criar registro padrão se a tabela estiver vazia
-            const insert = await pool.query(
-                `INSERT INTO empresa (nome, endereco, telefone, instagram, facebook, whatsapp)
-                 VALUES ($1, $2, $3, $4, $5, $6)
-                 RETURNING *`,
-                [
-                    'Certo Atacado',
-                    'Endereço não informado',
-                    '',
-                    '',
-                    '',
-                    ''
-                ]
-            );
-            return insert.rows[0] || null;
+            const { data: insertData, error: insertError } = await getSupabase()
+                .from('empresa')
+                .insert({
+                    nome: 'Certo Atacado',
+                    endereco: 'Endereço não informado',
+                    telefone: '',
+                    instagram: '',
+                    facebook: '',
+                    whatsapp: ''
+                })
+                .select()
+                .single();
+            
+            if (insertError) throw insertError;
+            return insertData || null;
         } catch (error) {
             console.error('Erro ao buscar dados da empresa:', error);
             throw error;
@@ -38,49 +61,28 @@ export class EmpresaRepository {
     // Atualizar dados da empresa
     async atualizar(id: number, dados: Partial<Empresa>): Promise<EmpresaResponseDTO | null> {
         try {
-            const fields = [];
-            const values = [];
-            let paramCount = 1;
+            const updateData: any = {};
+            
+            if (dados.nome !== undefined) updateData.nome = dados.nome;
+            if (dados.endereco !== undefined) updateData.endereco = dados.endereco;
+            if (dados.telefone !== undefined) updateData.telefone = dados.telefone;
+            if (dados.instagram !== undefined) updateData.instagram = dados.instagram;
+            if (dados.facebook !== undefined) updateData.facebook = dados.facebook;
+            if (dados.whatsapp !== undefined) updateData.whatsapp = dados.whatsapp;
 
-            if (dados.nome !== undefined) {
-                fields.push(`nome = $${paramCount++}`);
-                values.push(dados.nome);
-            }
-            if (dados.endereco !== undefined) {
-                fields.push(`endereco = $${paramCount++}`);
-                values.push(dados.endereco);
-            }
-            if (dados.telefone !== undefined) {
-                fields.push(`telefone = $${paramCount++}`);
-                values.push(dados.telefone);
-            }
-            if (dados.instagram !== undefined) {
-                fields.push(`instagram = $${paramCount++}`);
-                values.push(dados.instagram);
-            }
-            if (dados.facebook !== undefined) {
-                fields.push(`facebook = $${paramCount++}`);
-                values.push(dados.facebook);
-            }
-            if (dados.whatsapp !== undefined) {
-                fields.push(`whatsapp = $${paramCount++}`);
-                values.push(dados.whatsapp);
-            }
-
-            if (fields.length === 0) {
+            if (Object.keys(updateData).length === 0) {
                 return await this.buscarDados();
             }
 
-            values.push(id);
-            const query = `
-                UPDATE empresa 
-                SET ${fields.join(', ')}
-                WHERE id = $${paramCount} 
-                RETURNING *
-            `;
-
-            const result = await pool.query(query, values);
-            return result.rows[0] || null;
+            const { data, error } = await getSupabase()
+                .from('empresa')
+                .update(updateData)
+                .eq('id', id)
+                .select()
+                .single();
+            
+            if (error) throw error;
+            return data || null;
         } catch (error) {
             console.error('Erro ao atualizar dados da empresa:', error);
             throw error;
