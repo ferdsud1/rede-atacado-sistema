@@ -3,13 +3,20 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resendApiKey = process.env.RESEND_API_KEY;
+
+export const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 const EMAIL_FROM = process.env.EMAIL_FROM || "Certo Atacado <onboarding@resend.dev>";
 
-export { resend, EMAIL_FROM };
+export { EMAIL_FROM };
 
 export async function enviarEmailRecuperacao(destinatario: string, token: string): Promise<void> {
+    if (!resend) {
+        console.log('⚠️ RESEND_API_KEY não configurada - email não enviado');
+        return;
+    }
+    
     const resetLink = `${process.env.FRONTEND_URL || "http://localhost:3000"}/resetar-senha.html?token=${token}`;
     
     const html = `

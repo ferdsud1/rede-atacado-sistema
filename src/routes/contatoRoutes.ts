@@ -25,6 +25,10 @@ const upload = multer({
 // POST /contato/fale-conosco
 router.post("/fale-conosco", async (req: Request, res: Response) => {
     try {
+        if (!resend) {
+            return res.status(200).json({ sucesso: true, mensagem: "Email não configurado" });
+        }
+        
         const { nome, email, mensagem } = req.body;
         if (!nome || !email || !mensagem) {
             return res.status(400).json({ erro: "Todos os campos são obrigatórios" });
@@ -56,6 +60,10 @@ router.post("/fale-conosco", async (req: Request, res: Response) => {
 // POST /contato/trabalhe-conosco (COM UPLOAD DE CURRÍCULO)
 router.post("/trabalhe-conosco", upload.single("curriculo"), async (req: Request, res: Response) => {
     try {
+        if (!resend) {
+            return res.status(200).json({ sucesso: true, mensagem: "Email não configurado" });
+        }
+        
         const { nome, email, telefone, cargo, mensagem } = req.body;
         if (!nome || !email || !mensagem) {
             return res.status(400).json({ erro: "Nome, email e mensagem são obrigatórios" });
