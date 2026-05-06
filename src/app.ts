@@ -78,6 +78,18 @@ app.get('/debug/admin/:email', async (req, res) => {
     }
 });
 
+// Debug endpoint - listar todos admins
+app.get('/debug/admins', async (req, res) => {
+    try {
+        const { AdminRepository } = await import("./repository/AdminRepository");
+        const repo = new AdminRepository();
+        const admins = await repo.buscarTodos();
+        res.json({ admins });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.use("/admin", adminRoutes);
 app.use("/contato", contatoRoutes);
 app.use("/encartes", encarteRoutes);
