@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import path from "path";
 import adminRoutes from "./routes/adminRoutes";
 import encarteRoutes from "./routes/encarteRoutes";
 import categoriaRoutes from "./routes/categoriaRoutes";
@@ -16,12 +15,8 @@ const app = express();
 // SEGURANÇA
 // ==========================================
 
-// Helmet: Adiciona headers de segurança HTTP
-app.use(helmet({
-    contentSecurityPolicy: false
-}));
+app.use(helmet({ contentSecurityPolicy: false }));
 
-// CORS: Permitir tudo em desenvolvimento
 app.use(cors({
     origin: true,
     credentials: true,
@@ -29,10 +24,9 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Rate Limiting: Previne brute-force e DDoS
 const limiter = rateLimit({
-    windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-    max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+    windowMs: 15 * 60 * 1000,
+    max: 200,
     message: '⚠️ Muitas requisições. Tente novamente mais tarde.',
     standardHeaders: true,
     legacyHeaders: false,
@@ -48,21 +42,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ==========================================
-// ARQUIVOS ESTÁTICOS
-// ==========================================
-
-app.use(express.static(path.join(__dirname, "../public")));
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-
-// ==========================================
 // ROTAS
 // ==========================================
 
-app.get('/health', (_req, res) => {  // ← _req (não usado)
+app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Debug endpoint - verificar admin
+// Debug endpoint - verificar admin por email
 app.get('/debug/admin/:email', async (req, res) => {
     try {
         const { AdminRepository } = await import("./repository/AdminRepository");
@@ -78,54 +65,27 @@ app.get('/debug/admin/:email', async (req, res) => {
     }
 });
 
-// Debug endpoint - listar todos admins
-app.get('/debug/admins', async (req, res) => {
-    try {
-        const { AdminRepository } = await import("./repository/AdminRepository");
-        const repo = new AdminRepository();
-        const admins = await repo.buscarTodos();
-        res.json({ admins });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Debug endpoint - listar todos admins
-app.get('/debug/admins', async (req, res) => {
-    try {
-        const { AdminRepository } = await import("./repository/AdminRepository");
-        const repo = new AdminRepository();
-        const admins = await repo.buscarTodos();
-        res.json({ admins });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 app.use("/admin", adminRoutes);
 app.use("/contato", contatoRoutes);
 app.use("/encartes", encarteRoutes);
-app.use("/categorias", categoriaRoutes); 
+app.use("/categorias", categoriaRoutes);
 app.use("/empresa", empresaRoutes);
 app.use("/sorteios", sorteioRoutes);
 
 // ==========================================
-// TRATAMENTO DE ERROS GLOBAL
+// ERROS
 // ==========================================
 
-// Rota 404 - usa apenas req e res
-app.use((req, res, _next) => {  // ← _next (não usado)
+app.use((req, res, _next) => {
     res.status(404).json({
         error: 'Não encontrado',
         message: `A rota ${req.method} ${req.path} não existe.`,
     });
 });
 
-// Error handler global - usa err e res
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {  // ← _req e _next não usados
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('❌ Erro não tratado:', err);
-
-    res.status(err.status || 500).json({
+    res.status(err.status || err.statusCode || 500).json({
         error: err.name || 'Erro interno',
         message: err.message || 'Algo deu errado no servidor.',
     });
