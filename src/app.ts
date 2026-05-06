@@ -62,6 +62,22 @@ app.get('/health', (_req, res) => {  // ← _req (não usado)
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Debug endpoint - verificar admin
+app.get('/debug/admin/:email', async (req, res) => {
+    try {
+        const { AdminRepository } = await import("./repository/AdminRepository");
+        const repo = new AdminRepository();
+        const admin = await repo.buscarPorEmail(req.params.email);
+        if (admin) {
+            res.json({ found: true, email: admin.email, id: admin.id });
+        } else {
+            res.json({ found: false, email: req.params.email });
+        }
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.use("/admin", adminRoutes);
 app.use("/contato", contatoRoutes);
 app.use("/encartes", encarteRoutes);
