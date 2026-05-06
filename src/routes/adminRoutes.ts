@@ -27,6 +27,21 @@ router.post("/cadastrar", async (req, res) => {
     }
 });
 
+// GET /admin/registrar - Criar admin simples (sem hash)
+router.get("/registrar", async (req, res) => {
+    try {
+        const nome = req.query.nome as string || "Admin";
+        const email = req.query.email as string || "admin@email.com";
+        const senha = req.query.senha as string || "admin123";
+
+        const admin = await service.cadastrar({ nome, email, senha });
+        return res.status(201).json({ sucesso: true, admin: { id: admin.id, nome: admin.nome, email: admin.email } });
+    } catch (err: any) {
+        console.error("Erro ao registrar:", err);
+        return res.status(400).json({ erro: err.message });
+    }
+});
+
 // POST /admin/login - Autenticar admin
 router.post("/login", async (req, res) => {
     try {
