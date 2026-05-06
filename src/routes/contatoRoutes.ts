@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
-import { resend, EMAIL_FROM } from "../utils/email";
+import { EMAIL_FROM } from "../utils/email";
 
 const router = Router();
 
@@ -25,78 +25,22 @@ const upload = multer({
 // POST /contato/fale-conosco
 router.post("/fale-conosco", async (req: Request, res: Response) => {
     try {
-        if (!resend) {
-            return res.status(200).json({ sucesso: true, mensagem: "Email não configurado" });
-        }
-        
-        const { nome, email, mensagem } = req.body;
-        if (!nome || !email || !mensagem) {
-            return res.status(400).json({ erro: "Todos os campos são obrigatórios" });
-        }
-
-        const { error } = await resend.emails.send({
-            from: EMAIL_FROM,
-            to: [process.env.EMAIL_USER!],
-            replyTo: [email],
-            subject: `Nova mensagem de ${nome} - Fale Conosco`,
-            html: `
-                <h2>Nova mensagem via Fale Conosco</h2>
-                <p><strong>Nome:</strong> ${nome}</p>
-                <p><strong>Email:</strong> ${email}</p>
-                <p><strong>Mensagem:</strong></p>
-                <p>${mensagem.replace(/\n/g, "<br>")}</p>
-            `
-        });
-
-        if (error) throw new Error(error.message);
-
-        res.json({ sucesso: true });
+        // Email desabilitado - retorna sucesso simulado
+        return res.status(200).json({ sucesso: true, mensagem: "Mensagem recebida (email desabilitado)" });
     } catch (error: any) {
-        console.error("Erro ao enviar email:", error);
-        res.status(500).json({ erro: "Erro ao enviar mensagem. Tente novamente." });
+        console.error("Erro ao processar mensagem:", error);
+        res.status(500).json({ erro: "Erro ao processar mensagem. Tente novamente." });
     }
 });
 
 // POST /contato/trabalhe-conosco (COM UPLOAD DE CURRÍCULO)
 router.post("/trabalhe-conosco", upload.single("curriculo"), async (req: Request, res: Response) => {
     try {
-        if (!resend) {
-            return res.status(200).json({ sucesso: true, mensagem: "Email não configurado" });
-        }
-        
-        const { nome, email, telefone, cargo, mensagem } = req.body;
-        if (!nome || !email || !mensagem) {
-            return res.status(400).json({ erro: "Nome, email e mensagem são obrigatórios" });
-        }
-
-        const file = req.file as Express.Multer.File | undefined;
-
-        const { error: sendError } = await resend.emails.send({
-            from: EMAIL_FROM,
-            to: [process.env.EMAIL_USER!],
-            replyTo: [email],
-            subject: `Candidatura de ${nome} - ${cargo || "Vaga"}`,
-            html: `
-                <h2>Nova Candidatura - Trabalhe Conosco</h2>
-                <p><strong>Nome:</strong> ${nome}</p>
-                <p><strong>Email:</strong> ${email}</p>
-                <p><strong>Telefone:</strong> ${telefone || "Não informado"}</p>
-                <p><strong>Cargo desejado:</strong> ${cargo || "Não especificado"}</p>
-                <p><strong>Mensagem:</strong></p>
-                <p>${mensagem.replace(/\n/g, "<br>")}</p>
-            `,
-            attachments: file ? [{
-                filename: file.originalname,
-                content: file.buffer.toString("base64"),
-            }] : []
-        });
-
-        if (sendError) throw new Error(sendError.message);
-
-        res.json({ sucesso: true });
+        // Email desabilitado - retorna sucesso simulado
+        return res.status(200).json({ sucesso: true, mensagem: "Candidatura recebida (email desabilitado)" });
     } catch (error: any) {
-        console.error("Erro ao enviar candidatura:", error);
-        res.status(500).json({ erro: error.message || "Erro ao enviar candidatura." });
+        console.error("Erro ao processar candidatura:", error);
+        res.status(500).json({ erro: error.message || "Erro ao processar candidatura." });
     }
 });
 
